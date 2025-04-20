@@ -1,6 +1,7 @@
 # Wave Defense Game
 
-![Gameplay Screenshot Placeholder](images/screenshot.png) A classic wave-based tower defense game built entirely with HTML, CSS, and vanilla JavaScript using the Canvas API. Place towers strategically to defend your base against increasingly difficult waves of enemies!
+![Gameplay Screenshot Placeholder](images/screenshot.png) 
+A classic wave-based tower defense game built entirely with HTML, CSS, and vanilla JavaScript using the Canvas API. Place towers strategically to defend your base against increasingly difficult waves of enemies!
 
 ## Features
 
