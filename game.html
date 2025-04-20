@@ -1,0 +1,3245 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Wave Defense Game - Difficulty Levels</title>
+    <style>
+        /* Basic styling and layout */
+        :root { /* Define some color variables for consistency */
+            --bg-dark: #1a1a1a;
+            --bg-medium: #282828;
+            --bg-light: #333;
+            --border-color: #444;
+            --text-light: #eee;
+            --text-medium: #ccc;
+            --text-dark: #aaa;
+            --accent-blue: #3498db;
+            --accent-green: #2ecc71;
+            --accent-orange: #f39c12;
+            --accent-red: #e74c3c;
+            --accent-purple: #9b59b6;
+            --accent-teal: #1abc9c;
+            --accent-grey: #7f8c8d;
+            --base-game-width: 800px; /* Reference for potential scaling */
+            --base-game-height: 600px;
+            --tooltip-bg: rgba(10, 10, 10, 0.9);
+            --tooltip-text: #eee;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh; /* Use min-height */
+            background-color: var(--bg-dark);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            overflow: hidden; /* Prevent body scrollbars */
+            color: var(--text-light);
+        }
+        #game-container {
+            position: relative;
+            /* REMOVED fixed width and height */
+            /* ADDED responsive scaling */
+            width: 95vmin; /* Use viewport units, scale with smaller dimension */
+            max-width: 100vw;
+            max-height: 100vh;
+            aspect-ratio: 4 / 3; /* Maintain 800:600 ratio */
+            background-color: var(--bg-medium);
+            border: 1px solid var(--border-color);
+            box-shadow: 0 0 20px rgba(0,0,0,0.6);
+            overflow: hidden; /* IMPORTANT: Keep overflow hidden */
+            border-radius: 8px;
+            margin: auto; /* Center horizontally/vertically if body is flex container */
+        }
+        #game-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 1;
+            background: linear-gradient(to bottom, var(--bg-light), #404040);
+            display: block;
+            /* ADDED width/height 100% to fill container */
+            width: 100%;
+            height: 100%;
+        }
+
+        /* --- Top UI Container --- */
+        #ui-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            padding: 8px 15px; /* Slightly tighter padding */
+            box-sizing: border-box;
+            z-index: 2;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start; /* Align items to the top */
+            background: linear-gradient(to bottom, rgba(0, 0, 0, 0.3), rgba(0, 0, 0, 0.0)); /* Subtle top gradient */
+            pointer-events: none;
+        }
+        #ui-container > * {
+            pointer-events: auto;
+        }
+
+        /* --- Resource Bar Styles --- */
+        .resources {
+            display: flex;
+            flex-wrap: wrap; /* Allow wrapping if needed */
+            gap: 5px 8px; /* Row gap, Column gap */
+            max-width: 65%; /* Adjust max width based on testing */
+        }
+        .resources > div { /* Target direct children */
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            background: linear-gradient(to bottom, rgba(65, 65, 65, 0.8), rgba(50, 50, 50, 0.85));
+            color: var(--text-light);
+            padding: 4px 10px; /* More compact padding */
+            border-radius: 4px;
+            font-size: clamp(10px, 1.5vmin, 13px); /* Responsive font size */
+            min-width: 80px; /* More flexible min-width */
+            flex-basis: auto; /* Allow shrinking/growing */
+            text-align: left;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 1px 3px rgba(0,0,0,0.4), inset 0 1px 1px rgba(255, 255, 255, 0.05);
+            transition: background-color 0.2s ease, transform 0.1s ease, box-shadow 0.1s ease;
+        }
+        .resources > div:hover {
+            background: linear-gradient(to bottom, rgba(75, 75, 75, 0.8), rgba(60, 60, 60, 0.85));
+        }
+        .resources .icon {
+            width: clamp(10px, 1.5vmin, 14px); /* Smaller icons */
+            height: clamp(10px, 1.5vmin, 14px);
+            fill: currentColor;
+            opacity: 0.8;
+            flex-shrink: 0;
+        }
+        /* Specific Resource Highlights */
+        #health-counter { /* Make health more prominent */
+            order: -1; /* Move to the beginning */
+            padding: 5px 12px;
+            font-weight: bold;
+            background: linear-gradient(to bottom, var(--accent-red), #c0392b); /* Red base color */
+            border-color: rgba(255, 150, 150, 0.3);
+        }
+        #health-counter.low-health {
+            animation: pulse-red 1.5s infinite ease-in-out;
+        }
+        #gold-counter { /* Make gold stand out */
+             background: linear-gradient(to bottom, var(--accent-orange), #d35400);
+             border-color: rgba(255, 190, 100, 0.3);
+             font-weight: bold;
+        }
+        #kill-streak-counter.active-streak { /* Style when streak > 0 */
+             color: var(--accent-orange);
+             font-weight: bold;
+             background: linear-gradient(to bottom, #a06a1a, #82500a);
+             border-color: rgba(243, 156, 18, 0.4);
+        }
+        #interest-info { background: none; box-shadow: none; border: none; padding-left: 0; min-width: fit-content;} /* Make interest less prominent */
+        #interest-info .text { color: var(--accent-teal); font-style: italic; }
+
+        /* Value change animation */
+        .value-changed {
+            animation: flash-bg 0.3s ease-out;
+        }
+        @keyframes flash-bg {
+            0% { background-color: rgba(220, 220, 180, 0.6); transform: scale(1.03); }
+            70% { transform: scale(1.0); }
+            100% { background-color: initial; }
+        }
+        @keyframes pulse-red {
+            0% { box-shadow: 0 1px 3px rgba(0,0,0,0.4), inset 0 1px 1px rgba(255, 255, 255, 0.05); }
+            50% { box-shadow: 0 1px 8px rgba(255,0,0,0.7), inset 0 1px 1px rgba(255, 255, 255, 0.05), 0 0 5px rgba(255,50,50,0.5); }
+            100% { box-shadow: 0 1px 3px rgba(0,0,0,0.4), inset 0 1px 1px rgba(255, 255, 255, 0.05); }
+        }
+
+        /* --- Control Buttons Area (Right Side) --- */
+        #controls-area {
+            display: flex;
+            flex-direction: column; /* Stack main controls and speed */
+            align-items: flex-end; /* Align to the right */
+            gap: 8px;
+            max-width: 35%; /* Prevent overlap */
+        }
+        #main-controls {
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap; /* Allow buttons to wrap on smaller scales */
+            justify-content: flex-end; /* Keep alignment right */
+            gap: 8px;
+        }
+        #speed-control {
+            display: flex;
+            gap: 5px;
+            background: rgba(0, 0, 0, 0.2);
+            padding: 4px;
+            border-radius: 4px;
+            align-self: flex-end; /* Ensure it stays right */
+        }
+
+        /* --- General Button Styles --- */
+        .control-button {
+            background-color: #555; /* Base color */
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            padding: 8px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: clamp(10px, 1.5vmin, 13px); /* Responsive font size */
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+            transition: background-color 0.2s ease, transform 0.1s ease, box-shadow 0.1s ease;
+            display: flex; /* For icon alignment */
+            align-items: center;
+            justify-content: center; /* Center content */
+            gap: 6px; /* Space between icon and text */
+            flex-shrink: 0; /* Prevent shrinking too much */
+            white-space: nowrap; /* Prevent text wrapping */
+        }
+        .control-button .icon { /* Style for icons inside buttons */
+             width: clamp(10px, 1.5vmin, 14px);
+             height: clamp(10px, 1.5vmin, 14px);
+             fill: currentColor;
+        }
+         .control-button:hover:not(:disabled) {
+            background-color: #666;
+            transform: translateY(-1px);
+            box-shadow: 0 3px 6px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+        }
+        .control-button:active:not(:disabled) {
+            transform: translateY(0px);
+            box-shadow: 0 1px 2px rgba(0,0,0,0.3), inset 0 1px 2px rgba(0, 0, 0, 0.2);
+        }
+         .control-button:disabled {
+            background-color: #444;
+            cursor: default;
+            opacity: 0.6;
+            transform: none;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+        }
+
+        /* Specific Button Colors */
+        #start-button, #next-wave-button { background-color: var(--accent-green); }
+        #start-button:hover:not(:disabled), #next-wave-button:hover:not(:disabled) { background-color: #29b864; }
+        #pause-button { background-color: var(--accent-blue); }
+        #pause-button:hover:not(:disabled) { background-color: #4aa3db; }
+
+        /* ADDED: Settings Button Style */
+        #settings-button {
+            background-color: var(--accent-purple); /* Or another color */
+            min-width: auto; /* Adjust if needed */
+            padding: 8px 10px; /* Make it slightly more compact if using icon */
+        }
+        #settings-button:hover:not(:disabled) {
+            background-color: #af7ac5; /* Lighter purple */
+        }
+        /* --- END Settings Button Styles --- */
+
+
+        #bomb-button {
+             background-color: var(--accent-grey);
+             position: relative; /* For progress bar */
+             overflow: hidden; /* Keep progress bar inside */
+        }
+        #bomb-button .bomb-progress { /* The visual fill */
+            position: absolute;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 0%; /* Controlled by JS */
+            background-color: rgba(231, 76, 60, 0.7); /* Reddish progress */
+            z-index: 1;
+            transition: width 0.2s linear;
+        }
+         #bomb-button .bomb-text { /* Ensure text is above progress */
+             position: relative;
+             z-index: 2;
+         }
+        #bomb-button.ready {
+            background-color: var(--accent-red);
+            animation: pulse-orange 1.8s infinite ease-in-out;
+        }
+        #bomb-button.ready:hover:not(:disabled) { background-color: #d62c1a; }
+        @keyframes pulse-orange { /* Use red pulse since button is red now */
+            0% { box-shadow: 0 2px 4px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255, 255, 255, 0.1); }
+            50% { box-shadow: 0 2px 8px rgba(255, 50, 50, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.1), 0 0 5px rgba(255,80,80,0.4); }
+            100% { box-shadow: 0 2px 4px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255, 255, 255, 0.1); }
+        }
+
+        #speed-control button {
+            background-color: var(--accent-teal);
+            color: white;
+            border: none;
+            padding: 5px 8px;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: clamp(10px, 1.3vmin, 12px); /* Responsive */
+            box-shadow: 0 1px 2px rgba(0,0,0,0.2);
+            transition: background-color 0.2s ease, transform 0.1s ease, box-shadow 0.1s ease;
+            min-width: 25px; /* Ensure minimum tap size */
+        }
+        #speed-control button:hover {
+            background-color: #1ddcc8;
+            transform: translateY(-1px);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+        #speed-control button:active {
+            transform: translateY(0px);
+            box-shadow: 0 1px 1px rgba(0,0,0,0.2);
+        }
+        #speed-control button.active {
+            background-color: #138a7d; /* Darker teal */
+            font-weight: bold;
+            box-shadow: inset 0 1px 3px rgba(0,0,0,0.3);
+            transform: translateY(0px);
+            cursor: default;
+        }
+
+        /* --- Tower selection buttons at bottom --- */
+        #tower-selection {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap; /* Allow wrapping */
+            gap: 10px;
+            z-index: 2;
+            background: linear-gradient(to top, rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0.0)); /* Subtle bottom gradient */
+            padding: 10px 5px; /* Add horizontal padding */
+            box-sizing: border-box;
+            pointer-events: none;
+        }
+        #tower-selection > * {
+            pointer-events: auto;
+        }
+        .tower-button {
+            background-color: rgba(50, 50, 50, 0.85);
+            color: var(--text-medium);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 6px;
+            padding: 6px 10px; /* Slightly adjusted */
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            font-size: clamp(9px, 1.2vmin, 11px); /* Responsive */
+            /* width: 75px; /* REMOVE fixed width */
+            flex-basis: 65px; /* Use flex-basis instead */
+            flex-grow: 0; /* Don't grow */
+            flex-shrink: 0; /* Don't shrink initially */
+            box-shadow: 0 2px 5px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.05);
+            transition: background-color 0.2s ease, transform 0.1s ease, border-color 0.2s ease, box-shadow 0.1s ease;
+        }
+        .tower-button:hover:not(.disabled) { /* Target non-disabled */
+            background-color: rgba(70, 70, 70, 0.9);
+            transform: translateY(-2px);
+            border-color: rgba(255, 255, 255, 0.4);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.05);
+            color: var(--text-light);
+        }
+        .tower-button.selected { /* Style for the selected tower */
+            border-color: var(--accent-blue);
+            box-shadow: 0 1px 3px rgba(0,0,0,0.3), 0 0 0 2px var(--accent-blue), inset 0 1px 0 rgba(255,255,255,0.05);
+            background-color: rgba(70, 70, 90, 0.9); /* Slight blue tint */
+        }
+        /* USE CLASS .disabled instead of inline style selector */
+        .tower-button.disabled {
+             cursor: default;
+             filter: grayscale(60%);
+             transform: none;
+             box-shadow: 0 2px 5px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.05);
+             opacity: 0.6 !important; /* Override potential other styles */
+        }
+         .tower-button.disabled:hover { /* Prevent hover style */
+             background-color: rgba(50, 50, 50, 0.85);
+             border-color: rgba(255, 255, 255, 0.15);
+             transform: none;
+             box-shadow: 0 2px 5px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.05);
+         }
+
+        .tower-icon {
+            width: clamp(24px, 4vmin, 32px); /* Slightly smaller */
+            height: clamp(24px, 4vmin, 32px);
+            margin-bottom: 4px;
+            border-radius: 4px; /* Square icons */
+            border: 1px solid rgba(255,255,255,0.1);
+            box-shadow: inset 0 0 5px rgba(0,0,0,0.4);
+            /* background overridden inline, consider adding base style */
+            background-size: cover; /* For potential future image use */
+            display: flex; justify-content: center; align-items: center; /* For potential icon font */
+            flex-shrink: 0;
+        }
+        /* Specific Tower Icon Backgrounds (Can be improved with actual icons/SVGs) */
+        .tower-button[data-tower="basic"] .tower-icon { background: linear-gradient(to bottom right, #6cacde, var(--accent-blue)); }
+        .tower-button[data-tower="sniper"] .tower-icon { background: linear-gradient(to bottom right, #c38cd1, var(--accent-purple)); }
+        .tower-button[data-tower="cannon"] .tower-icon { background: linear-gradient(to bottom right, #ee7f73, var(--accent-red)); }
+        .tower-button[data-tower="freeze"] .tower-icon { background: linear-gradient(to bottom right, #54dbc5, var(--accent-teal)); }
+
+        /* --- Tower Management Panel (FIXED POSITIONING LOGIC) --- */
+        #tower-management-container {
+            position: absolute; /* Correct positioning strategy */
+            /* REMOVED fixed bottom/right */
+            /* REMOVED problematic transform: translate(-5%, -110%); */
+            z-index: 3;
+            background-color: rgba(35, 35, 35, 0.92); /* Slightly different background */
+            padding: 15px;
+            border-radius: 6px;
+            color: var(--text-light);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.6);
+            width: clamp(180px, 30vmin, 220px); /* Responsive width */
+            /* Transition properties */
+            opacity: 0;
+            transform: translateY(10px); /* Start slightly down for slide-in animation */
+            transition: opacity 0.2s ease-out, transform 0.2s ease-out, visibility 0s 0.2s; /* Delay visibility transition */
+            visibility: hidden; /* Hide when not visible for accessibility */
+            pointer-events: none; /* Ensure it doesn't block mouse events when hidden */
+        }
+        #tower-management-container.visible { /* Class added by JS */
+            opacity: 1;
+            transform: translateY(0); /* Animate to final position */
+            transition: opacity 0.2s ease-out, transform 0.2s ease-out, visibility 0s 0s; /* Make visible immediately */
+            visibility: visible;
+            pointer-events: auto; /* Allow interaction */
+        }
+        #tower-management-container p {
+            margin: 0 0 10px 0;
+            font-size: clamp(10px, 1.3vmin, 12px); /* Responsive */
+            line-height: 1.5;
+            color: var(--text-medium);
+        }
+         #tower-management-container p#tower-info strong {
+             font-size: clamp(12px, 1.5vmin, 14px); color: var(--text-light); display: block; margin-bottom: 4px;
+         }
+         #tower-management-container p#upgrade-info {
+             font-style: italic;
+             margin-top: 12px;
+             border-top: 1px solid rgba(255, 255, 255, 0.1);
+             padding-top: 10px;
+         }
+        #tower-management-buttons {
+            display: flex;
+            justify-content: space-between; /* Space out buttons */
+            gap: 10px;
+            margin-top: 15px;
+        }
+        #upgrade-button, #sell-button { /* Shared styles */
+            flex-grow: 1; /* Make buttons fill space */
+            color: white;
+            border: none;
+            padding: 8px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: clamp(11px, 1.4vmin, 13px); /* Responsive */
+            font-weight: bold;
+            transition: background-color 0.2s ease, transform 0.1s ease, box-shadow 0.1s ease;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.1);
+            text-align: center;
+            white-space: nowrap;
+        }
+        #upgrade-button { background-color: var(--accent-orange); }
+        #sell-button { background-color: var(--accent-red); }
+
+        #upgrade-button:hover:not(:disabled) {
+            background-color: #f5b041;
+            transform: translateY(-1px);
+            box-shadow: 0 2px 5px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.1);
+        }
+        #sell-button:hover {
+            background-color: #ec7063;
+            transform: translateY(-1px);
+            box-shadow: 0 2px 5px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.1);
+        }
+        #upgrade-button:disabled { /* Specific disabled style for upgrade button */
+            background-color: #555;
+            cursor: default;
+            opacity: 0.6;
+            transform: none;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.05);
+        }
+        #upgrade-button:active:not(:disabled),
+        #sell-button:active {
+            transform: translateY(0px);
+            box-shadow: 0 1px 1px rgba(0,0,0,0.3), inset 0 1px 2px rgba(0,0,0,0.2);
+        }
+
+        /* --- Game Over / Victory Overlay --- */
+        .game-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.85); /* Slightly darker */
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 10;
+            color: white;
+            text-align: center;
+            pointer-events: auto;
+            opacity: 0; /* Start hidden */
+            transition: opacity 0.5s ease-in-out, visibility 0s 0.5s; /* Delay visibility change */
+            visibility: hidden;
+        }
+        .game-overlay.visible { /* Add this class via JS */
+             opacity: 1;
+             transition-delay: 0s; /* Ensure visibility updates immediately when becoming visible */
+             visibility: visible;
+        }
+        .game-overlay h2 {
+            font-size: clamp(32px, 7vmin, 52px); /* Responsive */
+            margin-bottom: 15px;
+            color: var(--text-light);
+            text-shadow: 3px 3px 8px rgba(0,0,0,0.8);
+        }
+        .game-overlay p {
+            font-size: clamp(14px, 3vmin, 18px); /* Responsive */
+            color: var(--text-medium);
+            margin-bottom: 35px;
+        }
+        .game-overlay button {
+            background-color: var(--accent-green);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-top: 20px;
+            font-size: clamp(14px, 3vmin, 18px); /* Responsive */
+            font-weight: bold;
+            transition: background-color 0.2s ease, transform 0.15s ease, box-shadow 0.15s ease;
+            box-shadow: 0 3px 6px rgba(0,0,0,0.3);
+        }
+        .game-overlay button:hover {
+            background-color: #2abb67;
+            transform: scale(1.05);
+            box-shadow: 0 5px 10px rgba(0,0,0,0.35);
+        }
+        .game-overlay button:active {
+            transform: scale(1.02);
+            box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+        }
+
+        /* --- Settings Menu Styles --- */
+        #settings-menu {
+            /* Uses .game-overlay styles for basic layout */
+            pointer-events: none; /* Ensure it doesn't block clicks when hidden */
+        }
+        #settings-menu.visible {
+             pointer-events: auto; /* Allow interaction when visible */
+        }
+
+        /* Style the inner content box */
+        .settings-content-box {
+            background-color: rgba(40, 40, 40, 0.95);
+            padding: clamp(15px, 4vmin, 25px) clamp(20px, 5vmin, 40px); /* Responsive padding */
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.7);
+            width: 85%; /* Relative width */
+            max-width: 500px; /* Max width Increased slightly */
+            min-width: 280px; /* Min width Increased */
+            display: flex;
+            flex-direction: column;
+            gap: 15px; /* Adjusted gap */
+            color: var(--text-light);
+            max-height: 80vh; /* Prevent overflow on smaller screens */
+            overflow-y: auto; /* Allow scrolling if content overflows */
+        }
+
+        .settings-content-box h2 {
+            margin-top: 0;
+            margin-bottom: 10px; /* Less space below h2 */
+            text-align: center;
+            color: var(--accent-blue);
+            font-size: clamp(20px, 5vmin, 28px); /* Responsive */
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 10px;
+        }
+        /* Section Headings */
+        .settings-content-box h3 {
+            margin: 10px 0 5px 0;
+            font-size: clamp(15px, 3vmin, 18px);
+            color: var(--accent-teal);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            padding-bottom: 5px;
+        }
+
+        .setting-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between; /* Push label and control apart */
+            gap: 15px; /* Increased gap */
+            font-size: clamp(12px, 2.5vmin, 16px); /* Responsive */
+        }
+
+        .setting-item label {
+            /* width: 70px; REMOVED fixed width */
+            text-align: left; /* Align label text left */
+            flex-shrink: 0;
+            color: var(--text-medium);
+        }
+        .setting-item label[for$="-checkbox"] { /* Target labels for checkboxes specifically */
+            cursor: pointer; /* Make label clickable for checkbox */
+        }
+
+        /* Container for slider + value */
+        .slider-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-grow: 1; /* Allow slider area to take up space */
+        }
+
+        /* Style the volume sliders */
+        input[type="range"].volume-slider {
+            flex-grow: 1;
+            cursor: pointer;
+            height: 8px;
+            appearance: none; /* Override default look */
+            background: var(--bg-light);
+            border-radius: 4px;
+            outline: none;
+        }
+        /* Slider thumb styling (cross-browser) */
+         input[type="range"].volume-slider::-webkit-slider-thumb {
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            background: var(--accent-teal);
+            border-radius: 50%;
+            cursor: pointer;
+        }
+        input[type="range"].volume-slider::-moz-range-thumb {
+            width: 18px;
+            height: 18px;
+            background: var(--accent-teal);
+            border-radius: 50%;
+            cursor: pointer;
+            border: none;
+        }
+
+        .volume-value { /* Class for volume percentage spans */
+            min-width: 45px; /* Prevent layout shifts */
+            text-align: right;
+            font-weight: bold;
+            color: var(--text-light);
+        }
+
+        /* Style the checkboxes (generic) */
+        .setting-item input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+            accent-color: var(--accent-purple); /* Modern way to color checkboxes */
+            flex-shrink: 0; /* Prevent shrinking */
+            margin: 0; /* Remove default margin */
+        }
+
+        /* --- NEW: Difficulty Radio Styles --- */
+        .difficulty-options {
+            display: flex;
+            justify-content: space-around; /* Space items */
+            align-items: center;
+            flex-wrap: wrap; /* Allow wrap on small screens */
+            gap: 15px; /* Gap between options */
+            margin-left: 10px; /* Indent options slightly */
+        }
+        .difficulty-item {
+            display: flex;
+            align-items: center;
+            gap: 6px; /* Space between radio and label */
+        }
+        .difficulty-item label {
+            cursor: pointer;
+            color: var(--text-light); /* Use lighter text */
+            font-weight: normal; /* Normal weight */
+            font-size: clamp(11px, 2.2vmin, 15px);
+        }
+        .difficulty-item input[type="radio"] {
+            cursor: pointer;
+            accent-color: var(--accent-orange); /* Use accent color */
+            margin: 0;
+        }
+        /* --- END: Difficulty Radio Styles --- */
+
+        /* Style buttons within the settings menu */
+        .settings-buttons {
+            margin-top: 20px; /* Increased space above buttons */
+            display: flex;
+            flex-wrap: wrap; /* Allow wrapping */
+            justify-content: space-around; /* Space out buttons */
+            gap: 15px;
+            padding-top: 15px; /* Space above */
+            border-top: 1px solid var(--border-color); /* Separator line */
+        }
+        .settings-buttons .control-button { /* Reuse existing button styles */
+            padding: 10px 20px;
+            font-size: clamp(12px, 2.5vmin, 14px); /* Responsive */
+            text-transform: none; /* Override uppercase from .control-button */
+            flex-grow: 1; /* Allow buttons to grow */
+            min-width: 100px; /* Minimum button size */
+        }
+        #restart-button-settings { background-color: var(--accent-orange); }
+        #restart-button-settings:hover:not(:disabled) { background-color: #f5b041; } /* Match upgrade button hover */
+        #close-settings-button { background-color: var(--accent-grey); }
+        #close-settings-button:hover:not(:disabled) { background-color: #95a5a6; } /* Match bomb button hover */
+
+
+        /* Ensure overlays don't stack incorrectly initially */
+         #game-over-screen, #victory-screen, #settings-menu {
+             display: flex; /* Use flex for layout */
+             /* Visibility handled by transition */
+         }
+        /* --- END Settings Menu Styles --- */
+
+
+        /* --- Wave info (faded text in center when wave starts) --- */
+        #wave-info {
+            position: absolute;
+            top: 10%; /* Adjust position using % */
+            left: 50%;
+            transform: translateX(-50%) translateY(10px); /* Start slightly down & centered */
+            width: 80%; /* Limit width */
+            max-width: 500px;
+            text-align: center;
+            color: rgba(255, 255, 255, 1); /* Opaque when visible */
+            font-size: clamp(18px, 4vmin, 26px); /* Responsive */
+            font-weight: bold;
+            text-shadow: 2px 2px 8px rgba(0,0,0,0.9);
+            z-index: 2;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.4s ease-in-out, transform 0.4s ease-in-out;
+            /* No visibility transition needed if opacity handles hiding */
+        }
+        #wave-info.visible {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+        }
+
+        /* --- Custom Tooltip Style --- */
+        #custom-tooltip {
+            position: fixed; /* Use fixed to position relative to viewport */
+            background-color: var(--tooltip-bg);
+            color: var(--tooltip-text);
+            padding: 8px 12px;
+            border-radius: 4px;
+            font-size: 12px;
+            white-space: nowrap;
+            z-index: 9999; /* Ensure it's on top */
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.15s ease-out, visibility 0s 0.15s;
+            pointer-events: none; /* Prevent tooltip from blocking mouse events */
+            box-shadow: 0 2px 5px rgba(0,0,0,0.4);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        #custom-tooltip.visible {
+            opacity: 1;
+            visibility: visible;
+            transition-delay: 0s; /* Show immediately */
+        }
+        /* --- END Custom Tooltip Style --- */
+
+        /* --- Utility Classes --- */
+        .hidden {
+            display: none !important; /* Using !important here helps ensure it overrides the default 'flex' display of control buttons when needed */
+        }
+
+    </style>
+</head>
+<body>
+    <div id="game-container">
+        <canvas id="game-canvas"></canvas>
+
+        <div id="ui-container">
+            <div class="resources">
+                <div id="health-counter" data-tooltip="Base Health">
+                    <span class="text">Health: 20</span>
+                </div>
+                <div id="gold-counter" data-tooltip="Your Gold">
+                     <span class="text">Gold: 100</span>
+                </div>
+                <div id="wave-counter" data-tooltip="Current Wave / Total Waves">
+                     <span class="text">Wave: 1/25</span>
+                </div>
+                 <div id="score-counter" data-tooltip="Current Score">
+                     <span class="text">Score: 0</span>
+                 </div>
+                <div id="kill-streak-counter" data-tooltip="Current Kill Streak">
+                     <span class="text">Streak: 0</span>
+                </div>
+                 <div id="highscore-counter" data-tooltip="Highest Score Achieved">
+                     <span class="text">High Score: 0</span>
+                 </div>
+                <div id="interest-info">
+                    <span class="text"></span>
+                </div>
+            </div>
+
+            <div id="controls-area">
+                <div id="main-controls">
+                     <button id="next-wave-button" class="control-button hidden" data-tooltip="Start the next wave immediately"> ▶▶ Next Wave
+                     </button>
+                     <button id="start-button" class="control-button" data-tooltip="Start the first wave / Next wave after path change"> ▶ Start Wave
+                     </button>
+                    <button id="pause-button" class="control-button" data-tooltip="Pause or resume the game">
+                         || Pause
+                    </button>
+                    <button id="settings-button" class="control-button" data-tooltip="Open game settings">
+                         ⚙️ Settings </button>
+                     <button id="bomb-button" class="control-button" disabled data-tooltip="Bomb Ability - Charges with score. Damages all enemies.">
+                          <div class="bomb-progress"></div>
+                          <span class="bomb-text">
+                                💣 Bomb: 0%
+                          </span>
+                     </button>
+                </div>
+                <div id="speed-control">
+                    <button data-speed="1" class="active" data-tooltip="Normal Speed">1x</button>
+                    <button data-speed="2" data-tooltip="Double Speed">2x</button>
+                    <button data-speed="4" data-tooltip="Quad Speed">4x</button>
+                    <button data-speed="8" data-tooltip="8x Speed">8x</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="wave-info"></div>
+
+        <div id="tower-selection">
+             <div class="tower-button" data-tower="basic" data-cost="50" data-tooltip="Basic Tower (50g): Standard damage and fire rate. Hits Ground & Flying.">
+                  <div class="tower-icon"></div> Basic (50g)
+             </div>
+             <div class="tower-button" data-tower="sniper" data-cost="100" data-tooltip="Sniper Tower (100g): High range, high damage, slow fire rate. Hits Ground & Flying.">
+                  <div class="tower-icon"></div> Sniper (100g)
+             </div>
+             <div class="tower-button" data-tower="cannon" data-cost="150" data-tooltip="Cannon Tower (150g): Moderate damage, hits multiple targets. Hits Ground & Flying.">
+                  <div class="tower-icon"></div> Cannon (150g)
+             </div>
+             <div class="tower-button" data-tower="freeze" data-cost="120" data-tooltip="Freeze Tower (120g): Low damage, slows enemies. Ground only.">
+                  <div class="tower-icon"></div> Freeze (120g)
+             </div>
+        </div>
+
+        <div id="tower-management-container">
+            <p id="tower-info">Tower Info</p>
+            <p id="upgrade-info">Upgrade Info</p>
+            <div id="tower-management-buttons">
+                <button id="upgrade-button" data-tooltip="Improve this tower's stats">Upgrade</button>
+                <button id="sell-button" data-tooltip="Sell tower for partial refund">Sell</button>
+            </div>
+        </div>
+
+        <div id="game-over-screen" class="game-overlay">
+            <h2>Game Over!</h2>
+            <p>Your base was destroyed</p>
+            <button id="restart-button-gameover">Play Again</button>
+        </div>
+        <div id="victory-screen" class="game-overlay">
+            <h2>Victory!</h2>
+            <p>You've defeated all enemy waves!</p>
+            <button id="restart-button-victory">Play Again</button>
+        </div>
+
+        <div id="settings-menu" class="game-overlay">
+            <div class="settings-content-box">
+                <h2>Settings</h2>
+
+                <h3>Audio</h3>
+
+                <div class="setting-item">
+                    <label for="sfx-volume-slider">SFX Volume:</label>
+                    <div class="slider-container">
+                        <input type="range" id="sfx-volume-slider" class="volume-slider" min="0" max="1" step="0.01" value="1" data-tooltip="Adjust sound effect volume">
+                        <span id="sfx-volume-value" class="volume-value">100%</span>
+                    </div>
+                </div>
+
+                <div class="setting-item">
+                    <label for="music-volume-slider">Music Volume:</label>
+                     <div class="slider-container">
+                        <input type="range" id="music-volume-slider" class="volume-slider" min="0" max="1" step="0.01" value="0.5" data-tooltip="Adjust background music volume"> <span id="music-volume-value" class="volume-value">50%</span>
+                    </div>
+                </div>
+
+                <div class="setting-item">
+                    <label for="mute-checkbox" data-tooltip="Mute or unmute all game audio">Mute All:</label>
+                    <input type="checkbox" id="mute-checkbox">
+                </div>
+
+                <h3>Visuals</h3>
+
+                 <div class="setting-item">
+                    <label for="damage-numbers-checkbox" data-tooltip="Show or hide floating damage numbers">Show Damage Numbers:</label>
+                    <input type="checkbox" id="damage-numbers-checkbox" checked>
+                </div>
+
+                 <div class="setting-item">
+                    <label for="particle-effects-checkbox" data-tooltip="Show or hide explosion and muzzle flash effects">Show Particle Effects:</label>
+                    <input type="checkbox" id="particle-effects-checkbox" checked>
+                </div>
+
+                <h3>Difficulty</h3>
+                <p style="font-size: clamp(10px, 1.5vmin, 12px); color: var(--text-medium); margin: -10px 0 5px 0; text-align: center;">(Restart game for changes to take effect)</p>
+                <div class="difficulty-options">
+                    <div class="difficulty-item">
+                         <input type="radio" id="difficulty-easy" name="difficulty" value="easy" data-tooltip="Easier enemies, more starting resources">
+                         <label for="difficulty-easy">Easy</label>
+                    </div>
+                    <div class="difficulty-item">
+                         <input type="radio" id="difficulty-normal" name="difficulty" value="normal" checked data-tooltip="Standard difficulty">
+                         <label for="difficulty-normal">Normal</label>
+                    </div>
+                     <div class="difficulty-item">
+                         <input type="radio" id="difficulty-hard" name="difficulty" value="hard" data-tooltip="Tougher enemies, fewer starting resources">
+                         <label for="difficulty-hard">Hard</label>
+                     </div>
+                </div>
+                <div class="settings-buttons">
+                    <button id="restart-button-settings" class="control-button" data-tooltip="Restart the game with current settings">Restart Game</button>
+                    <button id="close-settings-button" class="control-button" data-tooltip="Close the settings menu">Close</button>
+                </div>
+            </div>
+        </div>
+        </div> <div id="custom-tooltip"></div>
+
+    <script>
+        // ---------------------------
+        // Global Constants & Config
+        // ---------------------------
+        const GAME_WIDTH = 800; // Base logical width
+        const GAME_HEIGHT = 600; // Base logical height
+        const ENEMY_SIZE = 20;
+        const BASE_POSITION = { x: GAME_WIDTH / 2, y: GAME_HEIGHT / 2 }; // Use constants
+        const BASE_SIZE = 40;
+        const TOWER_SIZE = 30;
+        const BULLET_SIZE = 5;
+        const BULLET_SPEED = 6;
+        const INTEREST_RATE = 0.02;
+        const KILL_STREAK_DURATION = 3000;
+        const SELL_REFUND_PERCENTAGE = 0.7;
+        const LOW_HEALTH_THRESHOLD_PERCENT = 0.25; // Check threshold based on percentage of starting health
+        const FIRING_EFFECT_DURATION = 0.1;
+        const PLACEMENT_EFFECT_DURATION = 0.3;
+        const VALUE_CHANGE_ANIM_DURATION = 300;
+        const TOOLTIP_OFFSET_X = 15; // Offset for custom tooltip from cursor
+        const TOOLTIP_OFFSET_Y = 10;
+        const TOWER_PANEL_SPACING = 10; // Pixels above tower to show panel
+
+        // ---------------------------
+        // Difficulty Settings
+        // ---------------------------
+        const difficultySettings = {
+            easy: { enemyHealthMult: 0.75, enemySpeedMult: 0.9, startingGold: 150, startingHealth: 25, goldRewardMult: 1.2 },
+            normal: { enemyHealthMult: 1.0, enemySpeedMult: 1.0, startingGold: 100, startingHealth: 20, goldRewardMult: 1.0 },
+            hard: { enemyHealthMult: 1.25, enemySpeedMult: 1.1, startingGold: 80, startingHealth: 15, goldRewardMult: 0.8 }
+        };
+        let currentDifficulty = 'normal'; // Default difficulty
+
+        // ---------------------------
+        // Global Variables
+        // ---------------------------
+        let gameSpeed = 1;
+        let paused = false;
+        let pausedBySettingsMenu = false; // Track if settings paused the game
+        let bombMeter = 0;
+        let score = 0;
+        let highScore = localStorage.getItem("waveDefenseHighScore") ? parseInt(localStorage.getItem("waveDefenseHighScore")) : 0;
+        let isMuted = false; // Mutes ALL sound
+        let sfxVolume = 1.0; // Sound Effects Volume (0.0 to 1.0)
+        let musicVolume = 0.5; // Music Volume (0.0 to 1.0)
+        let showDamageNumbers = true; // Toggle for damage number particles
+        let showParticles = true; // Toggle for cosmetic particle effects (explosions, muzzle flash)
+
+        let canvas, ctx, gameContainer; // Added gameContainer ref
+        let health; // Will be set by difficulty
+        let maxHealth; // Store max health based on difficulty
+        let gold; // Will be set by difficulty
+        let currentWave = 0;
+        const wavesPerPath = 5;
+        const totalPaths = 5;
+        const totalWaves = 25;
+        let enemies = [];
+        let towers = [];
+        let bullets = [];
+        let particles = [];
+        let gameEffects = []; // For screen flash, placement rings etc.
+        let gameOver = false;
+        let gameWon = false;
+        let waveActive = false;
+        let selectedTowerType = null;
+        let towerPreview = null;
+        let waveEnemiesRemaining = 0;
+        let enemiesKilledThisWave = 0;
+        let selectedTowerForManagement = null;
+        let currentMouseX = 0; // Logical X coordinate (0-800)
+        let currentMouseY = 0; // Logical Y coordinate (0-600)
+        let currentClientX = 0; // Raw client X for UI positioning
+        let currentClientY = 0; // Raw client Y for UI positioning
+        let killStreakCounter = 0;
+        let lastKillTime = 0;
+        let audioCtx = null;
+        let isAudioContextInitialized = false; // Track if initialized successfully
+        let waypoints = []; // Initialize waypoints array
+        let nextPathIndexToShow = -1; // For next path indicator
+        let spawnTimeoutId = null; // To track the spawn timer
+
+        let scaleFactor = 1; // For canvas scaling
+
+        // ---------------------------
+        // Tower Types & Upgrades
+        // ---------------------------
+         const towerTypes = {
+             basic: { name: "Basic", color: "#3498db", range: 100, damage: 1, fireRate: 1, cost: 50, bulletColor: "#6cacde", maxLevel: 3, targetsFlying: true, canTargetGround: true, upgrades: [ { cost: 75, damage: 2, range: 110, fireRate: 1.1, description: "+DMG, +Range, +Rate" }, { cost: 120, damage: 3, range: 120, fireRate: 1.2, splashRadius: 15, description: "+DMG, +Range, +Rate, GAIN SPLASH" } ] },
+             sniper: { name: "Sniper", color: "#9b59b6", range: 200, damage: 3, fireRate: 0.5, cost: 100, bulletColor: "#c38cd1", maxLevel: 3, targetsFlying: true, canTargetGround: true, upgrades: [ { cost: 150, damage: 5, range: 220, fireRate: 0.6, description: "+DMG, +Range, +Rate" }, { cost: 250, damage: 7, range: 240, fireRate: 0.7, pierceCount: 1, description: "+DMG, +Range, +Rate, GAIN PIERCE" } ] },
+             cannon: { name: "Cannon", color: "#e74c3c", range: 120, damage: 2, fireRate: 0.7, cost: 150, bulletColor: "#ee7f73", maxLevel: 3, numTargets: 3, targetsFlying: true, canTargetGround: true, upgrades: [ { cost: 200, damage: 3, range: 130, fireRate: 0.8, numTargets: 4, description: "+DMG, +Range, +Rate, +Target" }, { cost: 300, damage: 4, range: 140, fireRate: 0.9, numTargets: 5, stunChance: 0.1, stunDuration: 0.5, description: "+DMG, +Range, +Rate, +Target, CHANCE TO STUN" } ] },
+             freeze: { name: "Freeze", color: "#1abc9c", range: 90, damage: 0.5, fireRate: 0.8, cost: 120, bulletColor: "#54dbc5", maxLevel: 3, slowDuration: 3, slowAmount: 0.5, targetsFlying: false, canTargetGround: true, upgrades: [ { cost: 180, damage: 0.7, range: 100, fireRate: 0.9, slowDuration: 3.5, slowAmount: 0.6, description: "+DMG, +Range, +Rate, STRONGER SLOW" }, { cost: 280, damage: 1.0, range: 110, fireRate: 1.0, slowDuration: 4.0, slowAmount: 0.7, freezeAuraRadius: 20, description: "+DMG, +Range, +Rate, STRONGEST SLOW, SLOW AURA" } ] }
+         };
+
+        // ---------------------------
+        // Enemy Types
+        // ---------------------------
+         const enemyTypes = {
+             grunt: { name: "Grunt", color: "#e74c3c", speedMult: 1.0, healthMult: 1.0, goldReward: 10, scoreReward: 10 },
+             fast: { name: "Fast", color: "#3498db", speedMult: 1.5, healthMult: 0.7, goldReward: 12, scoreReward: 15 },
+             tank: { name: "Tank", color: "#8B4513", speedMult: 0.7, healthMult: 2.5, goldReward: 15, scoreReward: 20 },
+             armored: { name: "Armored", color: "#7f8c8d", speedMult: 0.9, healthMult: 1.5, goldReward: 18, scoreReward: 25, armor: 5, armorColor: "#bdc3c7" },
+             flying: { name: "Flyer", color: "#9b59b6", speedMult: 1.2, healthMult: 0.9, goldReward: 20, scoreReward: 30, isFlying: true },
+             healer: { name: "Healer", color: "#2ecc71", speedMult: 0.8, healthMult: 1.2, goldReward: 25, scoreReward: 35, healAmount: 0.5, healRadius: 50, healCooldownMax: 2 }
+         };
+
+        // ---------------------------
+        // Paths for Waves
+        // ---------------------------
+         const paths = [
+             [ { x: 0, y: 100 }, { x: 200, y: 100 }, { x: 200, y: 400 }, { x: 600, y: 400 }, { x: 600, y: 200 }, { x: BASE_POSITION.x, y: BASE_POSITION.y } ], // Path 1
+             [ { x: 799, y: 50 }, { x: 600, y: 50 }, { x: 600, y: 250 }, { x: 200, y: 250 }, { x: 200, y: 500 }, { x: BASE_POSITION.x, y: BASE_POSITION.y } ], // Path 2
+             [ { x: 100, y: 0 }, { x: 100, y: 200 }, { x: 500, y: 200 }, { x: 500, y: 500 }, { x: 700, y: 500 }, { x: BASE_POSITION.x, y: BASE_POSITION.y } ], // Path 3
+             [ { x: 700, y: 599 }, { x: 700, y: 400 }, { x: 100, y: 400 }, { x: 100, y: 150 }, { x: 300, y: 150 }, { x: BASE_POSITION.x, y: BASE_POSITION.y } ], // Path 4
+             [ { x: 400, y: 0 }, { x: 650, y: 150 }, { x: 650, y: 450 }, { x: 150, y: 450 }, { x: 150, y: 150 }, { x: BASE_POSITION.x, y: BASE_POSITION.y } ]  // Path 5
+         ];
+
+        // ---------------------------
+        // Wave Composition
+        // ---------------------------
+         const waveCompositions = [
+             { composition: [{ type: 'grunt', count: 10 }], interval: 800, baseHealth: 3, baseSpeed: 1.0 }, // 1
+             { composition: [{ type: 'grunt', count: 15 }], interval: 750, baseHealth: 4, baseSpeed: 1.0 }, // 2
+             { composition: [{ type: 'grunt', count: 10 }, { type: 'fast', count: 5 }], interval: 700, baseHealth: 4, baseSpeed: 1.1 }, // 3
+             { composition: [{ type: 'fast', count: 12 }], interval: 650, baseHealth: 5, baseSpeed: 1.1 }, // 4
+             { composition: [{ type: 'grunt', count: 15 }, { type: 'tank', count: 3 }], interval: 700, baseHealth: 5, baseSpeed: 1.1 }, // 5
+             { composition: [{ type: 'tank', count: 8 }], interval: 900, baseHealth: 6, baseSpeed: 1.2 }, // 6
+             { composition: [{ type: 'grunt', count: 10 }, { type: 'fast', count: 10 }, { type: 'tank', count: 2 }], interval: 600, baseHealth: 7, baseSpeed: 1.2 }, // 7
+             { composition: [{ type: 'armored', count: 5 }, { type: 'grunt', count: 10 }], interval: 800, baseHealth: 8, baseSpeed: 1.2 }, // 8
+             { composition: [{ type: 'fast', count: 15 }, { type: 'armored', count: 3 }], interval: 550, baseHealth: 9, baseSpeed: 1.3 }, // 9
+             { composition: [{ type: 'tank', count: 6 }, { type: 'armored', count: 6 }], interval: 750, baseHealth: 10, baseSpeed: 1.3 }, // 10
+             { composition: [{ type: 'flying', count: 8 }], interval: 700, baseHealth: 11, baseSpeed: 1.3 }, // 11
+             { composition: [{ type: 'grunt', count: 20 }, { type: 'flying', count: 5 }], interval: 500, baseHealth: 12, baseSpeed: 1.4 }, // 12
+             { composition: [{ type: 'healer', count: 3 }, { type: 'tank', count: 8 }], interval: 900, baseHealth: 13, baseSpeed: 1.4 }, // 13
+             { composition: [{ type: 'armored', count: 8 }, { type: 'flying', count: 8 }, { type: 'fast', count: 10 }], interval: 600, baseHealth: 14, baseSpeed: 1.5 }, // 14
+             { composition: [{ type: 'tank', count: 10 }, { type: 'healer', count: 5 }, { type: 'armored', count: 5 }, { type: 'flying', count: 5 }], interval: 650, baseHealth: 16, baseSpeed: 1.5 }, // 15
+             { composition: [{ type: 'grunt', count: 25 }], interval: 450, baseHealth: 17, baseSpeed: 1.6 }, // 16
+             { composition: [{ type: 'fast', count: 20 }, {type: 'flying', count: 5}], interval: 400, baseHealth: 18, baseSpeed: 1.6}, // 17
+             { composition: [{ type: 'armored', count: 10 }, { type: 'healer', count: 4 }], interval: 700, baseHealth: 20, baseSpeed: 1.6}, // 18
+             { composition: [{ type: 'tank', count: 12 }, { type: 'fast', count: 15 }], interval: 500, baseHealth: 22, baseSpeed: 1.7}, // 19
+             { composition: [{ type: 'flying', count: 15 }, { type: 'armored', count: 8 }, { type: 'healer', count: 3 }], interval: 550, baseHealth: 25, baseSpeed: 1.7}, // 20
+             { composition: [{ type: 'grunt', count: 30 }, { type: 'fast', count: 10 }], interval: 400, baseHealth: 27, baseSpeed: 1.8 }, // 21
+             { composition: [{ type: 'tank', count: 15 }, { type: 'armored', count: 10 }], interval: 600, baseHealth: 30, baseSpeed: 1.8 }, // 22
+             { composition: [{ type: 'fast', count: 25 }, { type: 'flying', count: 10 }, { type: 'healer', count: 5 }], interval: 350, baseHealth: 33, baseSpeed: 1.9 }, // 23
+             { composition: [{ type: 'armored', count: 15 }, { type: 'tank', count: 10 }, { type: 'flying', count: 8 }, { type: 'healer', count: 6 }], interval: 500, baseHealth: 36, baseSpeed: 1.9 }, // 24
+             { composition: [{ type: 'tank', count: 20 }, { type: 'healer', count: 10 }, { type: 'armored', count: 15 }, { type: 'flying', count: 15 }, { type: 'fast', count: 20 }], interval: 450, baseHealth: 40, baseSpeed: 2.0 } // 25
+         ];
+
+        // ---------------------------
+        // UI Element References
+        // ---------------------------
+        let healthCounterText, goldCounterText, waveCounterText, scoreCounterText, highscoreCounterText, killStreakCounterText, interestInfoText;
+        let healthCounterDiv, goldCounterDiv, scoreCounterDiv, killStreakCounterDiv, interestInfoDiv;
+        let startButton, pauseButton, bombButton, bombProgressElement, bombTextElement;
+        let gameOverScreen, victoryScreen, restartButtonGameOver, restartButtonVictory;
+        let towerButtons, waveInfo, towerManagementContainer, upgradeButton, sellButton;
+        let towerInfoP, upgradeInfoP, speedControlButtons, nextWaveButton;
+        let customTooltip;
+
+        // Settings Menu Element References
+        let settingsButton, settingsMenu, closeSettingsButton, restartButtonSettings;
+        let sfxVolumeSlider, sfxVolumeValueSpan;
+        let musicVolumeSlider, musicVolumeValueSpan;
+        let muteCheckbox;
+        let damageNumbersCheckbox;
+        let particleEffectsCheckbox;
+        let difficultyRadios;
+
+
+        // ---------------------------
+        // Sound Effect Function
+        // ---------------------------
+         function playSound(type, volMultiplier = 0.1, duration = 0.05) {
+             // Exit immediately if muted OR SFX volume is effectively zero OR audio context failed
+             if (isMuted || sfxVolume <= 0.01 || !isAudioContextInitialized) return;
+
+             try {
+                 // Check if context is still valid (e.g., wasn't closed unexpectedly)
+                 if (!audioCtx || audioCtx.state === 'closed') {
+                     initAudioContext(); // Try to re-initialize
+                     if (!isAudioContextInitialized) return; // Exit if re-initialization failed
+                 }
+
+                 const oscillator = audioCtx.createOscillator();
+                 const gainNode = audioCtx.createGain();
+                 oscillator.connect(gainNode);
+                 gainNode.connect(audioCtx.destination);
+
+                 let freq = 440; let oscType = 'triangle';
+
+                 switch (type) {
+                     case 'fire_basic': freq = 660; duration = 0.04; oscType = 'square'; break;
+                     case 'fire_sniper': freq = 1200; duration = 0.03; oscType = 'sawtooth'; volMultiplier = 0.08; break;
+                     case 'fire_cannon': freq = 300; duration = 0.08; oscType = 'square'; volMultiplier = 0.12; break;
+                     case 'fire_freeze': freq = 800; duration = 0.06; oscType = 'sine'; break;
+                     case 'hit': freq = 200; duration = 0.04; oscType = 'square'; volMultiplier = 0.05; break;
+                     case 'die': freq = 150; duration = 0.1; oscType = 'sawtooth'; volMultiplier = 0.15; break;
+                     case 'place': freq = 523; duration = 0.1; oscType = 'sine'; break; // C5
+                     case 'upgrade': freq = 784; duration = 0.15; oscType = 'sine'; break; // G5
+                     case 'sell': freq = 392; duration = 0.15; oscType = 'sine'; break; // G4
+                     case 'streak': freq = 1046; duration = 0.2; oscType = 'sine'; volMultiplier = 0.2; break; // C6
+                     case 'error': freq = 250; duration = 0.2; oscType = 'square'; volMultiplier = 0.15; break;
+                     case 'bomb': freq = 100; duration = 0.5; oscType = 'sawtooth'; volMultiplier = 0.4; break;
+                     case 'wave_start': freq = 440; duration = 0.3; oscType = 'sawtooth'; volMultiplier = 0.3; break; // A4
+                     case 'heal': freq = 900; duration = 0.1; oscType = 'sine'; volMultiplier = 0.15; break;
+                     case 'ui_click': freq = 700; duration = 0.03; oscType = 'triangle'; volMultiplier = 0.08; break;
+                     case 'cancel_placement': freq = 300; duration = 0.05; oscType = 'triangle'; volMultiplier = 0.06; break; // Added sound for cancel
+                     case 'game_over': freq = 130; duration = 1.0; oscType = 'sawtooth'; volMultiplier = 0.4; break; // C3
+                     case 'victory': freq = 523; duration = 1.5; oscType = 'sine'; volMultiplier = 0.4; break; // C5
+                     case 'volume_change': freq = 600 + sfxVolume * 400; duration = 0.02; oscType = 'sine'; volMultiplier = 0.05; break; // Subtle sound for volume change
+                 }
+
+                 oscillator.frequency.setValueAtTime(freq, audioCtx.currentTime);
+                 oscillator.type = oscType;
+                 // USE SFX VOLUME and the multiplier
+                 gainNode.gain.setValueAtTime(sfxVolume * volMultiplier, audioCtx.currentTime);
+                 gainNode.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + duration);
+                 oscillator.start(audioCtx.currentTime);
+                 oscillator.stop(audioCtx.currentTime + duration);
+             } catch (e) {
+                 console.error("Web Audio API error:", e);
+                 audioCtx = null; // Reset context on error
+                 isAudioContextInitialized = false;
+             }
+         }
+
+         function initAudioContext() {
+             // Only try to initialize if it hasn't been successfully initialized before OR if it was closed
+             if (!isAudioContextInitialized || (audioCtx && audioCtx.state === 'closed')) {
+                 try {
+                     // Check if context exists and is closed, if so, try to recreate
+                     if (audioCtx && audioCtx.state === 'closed') {
+                         audioCtx = null; // Clear closed context
+                     }
+                     if (!audioCtx) { // If no context or cleared context
+                        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                     }
+
+                     // If context is running, mark as initialized
+                     if (audioCtx && audioCtx.state === 'running') {
+                        isAudioContextInitialized = true;
+                        console.log("AudioContext initialized successfully.");
+                     } else if (audioCtx && audioCtx.state === 'suspended') {
+                         // Attempt to resume suspended context (common in browsers requiring user interaction first)
+                         audioCtx.resume().then(() => {
+                             isAudioContextInitialized = true;
+                             console.log("AudioContext resumed successfully.");
+                         }).catch(e => {
+                             console.warn("Could not resume AudioContext:", e);
+                             isAudioContextInitialized = false;
+                         });
+                     } else {
+                         // If context is still not running (e.g., failed construction)
+                         isAudioContextInitialized = false;
+                         console.warn("Could not initialize/resume AudioContext. State:", audioCtx ? audioCtx.state : 'null');
+                     }
+                 } catch(e) {
+                     console.warn("Could not initialize Web Audio API. Sound effects disabled.", e);
+                     audioCtx = null; // Ensure it's null if failed
+                     isAudioContextInitialized = false;
+                 }
+             }
+         }
+
+        // ---------------------------
+        // Canvas Resize Function
+        // ---------------------------
+        function resizeCanvas() {
+            if (!canvas || !gameContainer || !ctx) return;
+
+            const containerWidth = gameContainer.offsetWidth;
+            const containerHeight = gameContainer.offsetHeight;
+
+            canvas.width = containerWidth;
+            canvas.height = containerHeight;
+
+            scaleFactor = canvas.width / GAME_WIDTH;
+
+            // Redraw immediately after resize for smoother appearance
+            // (but only if the game loop isn't already running or paused)
+            // if (!lastTimestamp || paused) {
+            //     redrawStaticElements(); // Optional: redraw static background elements if needed
+            // }
+        }
+
+        // Helper to redraw elements that don't change in the main loop (if needed for resize)
+        function redrawStaticElements() {
+             if (!ctx || !scaleFactor) return;
+             ctx.save();
+             ctx.scale(scaleFactor, scaleFactor);
+             ctx.clearRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
+             // Draw non-moving elements like background gradient, maybe paths if not animated
+             // drawWaypoints(); // Example if waypoints were static
+             drawBase(); // Base is static
+             // Draw other static elements as needed
+             ctx.restore();
+        }
+
+        // ---------------------------
+        // Initialization
+        // ---------------------------
+        function init() {
+            // Assign canvas and context
+            canvas = document.getElementById("game-canvas");
+            gameContainer = document.getElementById("game-container");
+            if (!canvas || !gameContainer) { console.error("Canvas or Game Container element not found!"); return; }
+            ctx = canvas.getContext("2d");
+            if (!ctx) { console.error("Could not get 2D context!"); return; }
+
+            // Assign UI Element References (Core UI)
+            healthCounterText = document.querySelector("#health-counter .text");
+            goldCounterText = document.querySelector("#gold-counter .text");
+            waveCounterText = document.querySelector("#wave-counter .text");
+            scoreCounterText = document.querySelector("#score-counter .text");
+            highscoreCounterText = document.querySelector("#highscore-counter .text");
+            killStreakCounterText = document.querySelector("#kill-streak-counter .text");
+            interestInfoText = document.querySelector("#interest-info .text");
+            healthCounterDiv = document.getElementById("health-counter");
+            goldCounterDiv = document.getElementById("gold-counter");
+            scoreCounterDiv = document.getElementById("score-counter");
+            killStreakCounterDiv = document.getElementById("kill-streak-counter");
+            interestInfoDiv = document.getElementById("interest-info");
+            startButton = document.getElementById("start-button");
+            pauseButton = document.getElementById("pause-button");
+            bombButton = document.getElementById("bomb-button");
+            bombProgressElement = document.querySelector("#bomb-button .bomb-progress");
+            bombTextElement = document.querySelector("#bomb-button .bomb-text");
+            gameOverScreen = document.getElementById("game-over-screen");
+            victoryScreen = document.getElementById("victory-screen");
+            restartButtonGameOver = document.getElementById("restart-button-gameover");
+            restartButtonVictory = document.getElementById("restart-button-victory");
+            towerButtons = document.querySelectorAll(".tower-button");
+            waveInfo = document.getElementById("wave-info");
+            towerManagementContainer = document.getElementById("tower-management-container");
+            upgradeButton = document.getElementById("upgrade-button");
+            sellButton = document.getElementById("sell-button");
+            towerInfoP = document.getElementById("tower-info");
+            upgradeInfoP = document.getElementById("upgrade-info");
+            speedControlButtons = document.querySelectorAll("#speed-control button");
+            nextWaveButton = document.getElementById("next-wave-button");
+            customTooltip = document.getElementById("custom-tooltip");
+
+            // Assign Settings elements
+            settingsButton = document.getElementById("settings-button");
+            settingsMenu = document.getElementById("settings-menu");
+            sfxVolumeSlider = document.getElementById("sfx-volume-slider");
+            sfxVolumeValueSpan = document.getElementById("sfx-volume-value");
+            musicVolumeSlider = document.getElementById("music-volume-slider");
+            musicVolumeValueSpan = document.getElementById("music-volume-value");
+            muteCheckbox = document.getElementById("mute-checkbox");
+            damageNumbersCheckbox = document.getElementById("damage-numbers-checkbox");
+            particleEffectsCheckbox = document.getElementById("particle-effects-checkbox");
+            restartButtonSettings = document.getElementById("restart-button-settings");
+            closeSettingsButton = document.getElementById("close-settings-button");
+            difficultyRadios = document.querySelectorAll('input[name="difficulty"]');
+
+
+            // Check if all vital elements were found
+            if (!healthCounterText || !goldCounterText || !waveCounterText || !scoreCounterText || !highscoreCounterText || !killStreakCounterText || !interestInfoText || !healthCounterDiv || !goldCounterDiv || !scoreCounterDiv || !killStreakCounterDiv || !interestInfoDiv || !startButton || !pauseButton || !bombButton || !bombProgressElement || !bombTextElement || !gameOverScreen || !victoryScreen || !restartButtonGameOver || !restartButtonVictory || !towerButtons || !waveInfo || !towerManagementContainer || !upgradeButton || !sellButton || !towerInfoP || !upgradeInfoP || !speedControlButtons || !nextWaveButton || !customTooltip ||
+                !settingsButton || !settingsMenu || !sfxVolumeSlider || !sfxVolumeValueSpan || !musicVolumeSlider || !musicVolumeValueSpan || !muteCheckbox || !damageNumbersCheckbox || !particleEffectsCheckbox || !restartButtonSettings || !closeSettingsButton || !difficultyRadios || difficultyRadios.length === 0
+            ) {
+                console.error("One or more UI elements could not be found! Check IDs and selectors.");
+                return; // Stop initialization if UI is broken
+            }
+
+            // --- Load All Preferences from localStorage ---
+            loadSettings(); // Use helper function to load all settings (including difficulty)
+
+            // --- Apply Difficulty Settings ---
+            applyDifficultySettings(); // Apply loaded difficulty to starting stats
+
+            // Set initial waypoint path
+            waypoints = paths[0];
+            nextPathIndexToShow = 0; // Show path 0 initially between games
+
+            // Add Event Listeners (Core Buttons & Canvas)
+            canvas.addEventListener("mousemove", handleMouseMove);
+            canvas.addEventListener("click", (e) => {
+                initAudioContext(); // Ensure audio is ready on first interaction
+                handleMouseClick(e);
+            });
+            canvas.addEventListener('contextmenu', (e) => {
+                initAudioContext(); // Ensure audio is ready
+                handleContextMenu(e);
+            });
+
+            // Add listener to initialize audio on *any* user interaction with the container
+            // This helps ensure audio context is ready before sounds need to play
+            const firstInteractionHandler = () => {
+                initAudioContext();
+                gameContainer.removeEventListener('click', firstInteractionHandler, true);
+                gameContainer.removeEventListener('keydown', firstInteractionHandler, true);
+            };
+            gameContainer.addEventListener('click', firstInteractionHandler, { capture: true, once: true });
+            gameContainer.addEventListener('keydown', firstInteractionHandler, { capture: true, once: true });
+
+
+            startButton.addEventListener("click", () => { playSound('ui_click'); startWave(); });
+            pauseButton.addEventListener("click", () => { playSound('ui_click'); togglePause(); });
+            restartButtonGameOver.addEventListener("click", () => { playSound('ui_click'); restartGame(); });
+            restartButtonVictory.addEventListener("click", () => { playSound('ui_click'); restartGame(); });
+            upgradeButton.addEventListener("click", () => { upgradeSelectedTower(); }); // Sound played within function if successful
+            sellButton.addEventListener("click", () => { sellSelectedTower(); }); // Sound played within function
+            nextWaveButton.addEventListener("click", () => { playSound('ui_click'); startNextWave(); });
+            bombButton.addEventListener("click", () => { activateBomb(); }); // Sound played within function
+
+
+            // Settings Menu Listeners
+            settingsButton.addEventListener("click", () => { playSound('ui_click'); openSettingsMenu(); });
+            closeSettingsButton.addEventListener("click", () => { playSound('ui_click'); closeSettingsMenu(); });
+            restartButtonSettings.addEventListener("click", () => {
+                playSound('ui_click', 0.2);
+                closeSettingsMenu(); // Close first
+                restartGame(); // Restart applies current settings including difficulty
+            });
+            // SFX Volume Slider
+            sfxVolumeSlider.addEventListener("input", () => {
+                sfxVolume = parseFloat(sfxVolumeSlider.value);
+                sfxVolumeValueSpan.textContent = `${Math.round(sfxVolume * 100)}%`;
+                if (sfxVolume > 0 && isMuted) { // Unmute if adjusting volume above 0
+                    isMuted = false;
+                    muteCheckbox.checked = false;
+                }
+                 // Play sound only while dragging if audio context is ready
+                if(isAudioContextInitialized && audioCtx && audioCtx.state === 'running') {
+                    playSound('volume_change');
+                }
+            });
+             sfxVolumeSlider.addEventListener("change", () => { // Save when interaction ends
+                saveSettings();
+            });
+            // Music Volume Slider
+            musicVolumeSlider.addEventListener("input", () => {
+                musicVolume = parseFloat(musicVolumeSlider.value);
+                musicVolumeValueSpan.textContent = `${Math.round(musicVolume * 100)}%`;
+                if (musicVolume > 0 && isMuted) { // Unmute if adjusting volume above 0
+                    isMuted = false;
+                    muteCheckbox.checked = false;
+                }
+                 // Optional: Add feedback sound or link to music playback volume here
+            });
+             musicVolumeSlider.addEventListener("change", () => { // Save when interaction ends
+                saveSettings();
+                 // Optional: Update actual music playback volume here
+            });
+            // Mute Checkbox
+             muteCheckbox.addEventListener("change", () => {
+                isMuted = muteCheckbox.checked;
+                playSound('ui_click'); // Play feedback sound after state change
+                saveSettings();
+            });
+            // Damage Numbers Checkbox
+            damageNumbersCheckbox.addEventListener("change", () => {
+                showDamageNumbers = damageNumbersCheckbox.checked;
+                playSound('ui_click');
+                saveSettings();
+            });
+            // Particle Effects Checkbox
+            particleEffectsCheckbox.addEventListener("change", () => {
+                showParticles = particleEffectsCheckbox.checked;
+                playSound('ui_click');
+                saveSettings();
+            });
+            // Difficulty Radio Buttons
+            difficultyRadios.forEach(radio => {
+                radio.addEventListener('change', () => {
+                    if (radio.checked) {
+                        currentDifficulty = radio.value;
+                        playSound('ui_click');
+                        saveSettings();
+                        // Note: Full difficulty effect requires restart
+                        console.log("Difficulty changed to:", currentDifficulty, "(Restart game for full effect)");
+                    }
+                });
+            });
+
+
+             // Speed control listener
+             speedControlButtons.forEach(button => {
+                 button.addEventListener("click", () => {
+                     playSound('ui_click');
+                     gameSpeed = parseInt(button.getAttribute("data-speed"));
+                     speedControlButtons.forEach(btn => btn.classList.remove("active"));
+                     button.classList.add("active");
+                 });
+             });
+
+             // Tower button listeners
+             towerButtons.forEach(button => {
+                 button.addEventListener("click", () => {
+                     const towerType = button.getAttribute("data-tower");
+                     const typeData = towerTypes[towerType];
+                     if (typeData) {
+                         if (gold >= typeData.cost) {
+                             playSound('ui_click');
+                             if (selectedTowerType === towerType) { // Toggle off if clicking same button
+                                 selectedTowerType = null; towerPreview = null; button.classList.remove('selected');
+                             } else { // Select new tower
+                                 selectedTowerType = towerType;
+                                 towerButtons.forEach(btn => btn.classList.remove('selected')); // Deselect others visually
+                                 button.classList.add('selected'); // Select this one visually
+                                 // Create preview at current mouse pos
+                                 towerPreview = { type: towerType, x: currentMouseX, y: currentMouseY, range: typeData.range, valid: isTowerPositionValid(currentMouseX, currentMouseY) };
+                                 // If management panel was open, close it
+                                 if (selectedTowerForManagement) {
+                                     hideTowerManagementContainer();
+                                     selectedTowerForManagement = null;
+                                 }
+                             }
+                         } else { playSound('error', 0.2); } // Not enough gold
+                     }
+                     updateUI(); // Update tower button disabled states
+                 });
+             });
+
+             // Custom Tooltip Listeners on gameContainer
+             gameContainer.addEventListener('mouseover', handleTooltipMouseOver);
+             gameContainer.addEventListener('mouseout', handleTooltipMouseOut);
+             gameContainer.addEventListener('mousemove', handleTooltipMouseMove); // Use container for mousemove
+
+            // --- Initial Setup ---
+            updateHighScoreUI();
+            resizeCanvas(); // Perform initial resize/scale calculation
+            updateUI(); // Initial UI update (resource text etc.)
+            window.addEventListener('resize', resizeCanvas); // Listen for window resize
+
+            requestAnimationFrame(gameLoop); // Start the game loop
+         }
+
+        // ---------------------------
+        // Game Loop
+        // ---------------------------
+        let lastTimestamp = 0;
+        function gameLoop(timestamp) {
+            const deltaTime = (timestamp - lastTimestamp) || (1000 / 60);
+            lastTimestamp = timestamp;
+            const adjustedDeltaTime = Math.min(deltaTime, 50); // Clamp max delta time
+            const step = (pausedBySettingsMenu ? 0 : (adjustedDeltaTime / (1000 / 60)) * gameSpeed); // No game step if paused by settings
+
+            ctx.save(); // Save the default state
+            ctx.scale(scaleFactor, scaleFactor); // Apply scaling
+
+            ctx.clearRect(0, 0, GAME_WIDTH, GAME_HEIGHT); // Clear logical area
+
+            if (!paused && !gameOver && !gameWon) {
+                updateEnemies(step);
+                updateTowers(step);
+                updateBullets(step);
+                updateParticles(step);
+                updateGameEffects(step);
+                checkWaveStatus();
+                updateKillStreak(timestamp);
+            } else if (pausedBySettingsMenu) {
+                // Keep updating non-gameplay elements even if settings menu pauses game logic
+                updateParticles(step); // Particles might still need to fade out
+                updateGameEffects(step); // Effects might still need to fade out
+            }
+
+
+            // Drawing (always happens, even if paused)
+            drawWaypoints();
+            drawNextPathIndicator(); // Draw indicator between waves
+            drawBase();
+            drawEnemies();
+            drawTowers();
+            drawBullets();
+            drawParticles();
+            drawGameEffects();
+            if (towerPreview) drawTowerPreview(); // Draw preview if it exists
+
+            // Overlays / Pause Screen
+            if (paused && !pausedBySettingsMenu) {
+                ctx.fillStyle = "rgba(0,0,0,0.5)";
+                ctx.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
+                ctx.fillStyle = "white";
+                ctx.font = "bold 48px 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif";
+                ctx.textAlign = "center";
+                ctx.textBaseline = "middle";
+                ctx.fillText("Paused", GAME_WIDTH / 2, GAME_HEIGHT / 2);
+            } else if (gameOver) {
+                if (!gameOverScreen.classList.contains("visible")) {
+                    gameOverScreen.classList.add("visible");
+                    playSound('game_over', 0.4);
+                }
+            } else if (gameWon) {
+                if (!victoryScreen.classList.contains("visible")) {
+                    victoryScreen.classList.add("visible");
+                    playSound('victory', 0.4);
+                }
+            }
+
+            ctx.restore(); // Restore the context
+
+            requestAnimationFrame(gameLoop); // Continue the loop
+          }
+
+        // ---------------------------
+        // Settings, Pause, Loading/Saving
+        // ---------------------------
+          function togglePause() {
+              if (pausedBySettingsMenu) return; // Cannot unpause manually if settings menu is open
+
+              paused = !paused;
+              pauseButton.textContent = paused ? "▶ Resume" : "|| Pause";
+              if (!paused) {
+                  lastTimestamp = performance.now(); // Prevent large jump after unpausing
+              }
+          }
+
+          function openSettingsMenu() {
+              if (!settingsMenu) return;
+              if (!paused) { // Only set pausedBySettingsMenu if we are pausing it now
+                  paused = true;
+                  pausedBySettingsMenu = true; // Flag that settings menu initiated pause
+                  pauseButton.textContent = "▶ Resume"; // Show resume, but it won't work manually
+                  pauseButton.disabled = true; // Disable manual resume via button
+              }
+              settingsMenu.classList.add("visible");
+          }
+
+          function closeSettingsMenu() {
+              if (!settingsMenu) return;
+              settingsMenu.classList.remove("visible");
+              if (paused && pausedBySettingsMenu) { // Only unpause if settings menu caused it
+                  paused = false;
+                  pauseButton.textContent = "|| Pause";
+                  lastTimestamp = performance.now(); // Prevent time jump
+              }
+              pausedBySettingsMenu = false; // Clear the flag
+              pauseButton.disabled = false; // Re-enable pause button
+          }
+
+          function loadSettings() {
+              try {
+                  const savedSfxVolume = localStorage.getItem("waveDefenseSfxVolume");
+                  const savedMusicVolume = localStorage.getItem("waveDefenseMusicVolume");
+                  const savedMuteState = localStorage.getItem("waveDefenseMuted");
+                  const savedDamageNumbers = localStorage.getItem("waveDefenseDamageNumbers");
+                  const savedParticles = localStorage.getItem("waveDefenseParticles");
+                  const savedDifficulty = localStorage.getItem("waveDefenseDifficulty");
+
+                  sfxVolume = (savedSfxVolume !== null) ? parseFloat(savedSfxVolume) : 1.0;
+                  musicVolume = (savedMusicVolume !== null) ? parseFloat(savedMusicVolume) : 0.5; // Default music lower
+                  isMuted = (savedMuteState === 'true');
+                  showDamageNumbers = (savedDamageNumbers !== null) ? (savedDamageNumbers === 'true') : true;
+                  showParticles = (savedParticles !== null) ? (savedParticles === 'true') : true;
+                  currentDifficulty = difficultySettings[savedDifficulty] ? savedDifficulty : 'normal'; // Validate saved value
+
+                  // Validate loaded values
+                  if (isNaN(sfxVolume) || sfxVolume < 0 || sfxVolume > 1) sfxVolume = 1.0;
+                  if (isNaN(musicVolume) || musicVolume < 0 || musicVolume > 1) musicVolume = 0.5;
+
+                  // Update controls to reflect loaded state
+                  sfxVolumeSlider.value = sfxVolume;
+                  sfxVolumeValueSpan.textContent = `${Math.round(sfxVolume * 100)}%`;
+                  musicVolumeSlider.value = musicVolume;
+                  musicVolumeValueSpan.textContent = `${Math.round(musicVolume * 100)}%`;
+                  muteCheckbox.checked = isMuted;
+                  damageNumbersCheckbox.checked = showDamageNumbers;
+                  particleEffectsCheckbox.checked = showParticles;
+                  difficultyRadios.forEach(radio => {
+                      radio.checked = (radio.value === currentDifficulty);
+                  });
+
+              } catch (e) {
+                  console.warn("Could not load settings from localStorage:", e);
+                  // Use defaults if loading fails (already set in global vars)
+                  sfxVolumeSlider.value = sfxVolume;
+                  sfxVolumeValueSpan.textContent = `${Math.round(sfxVolume * 100)}%`;
+                  musicVolumeSlider.value = musicVolume;
+                  musicVolumeValueSpan.textContent = `${Math.round(musicVolume * 100)}%`;
+                  muteCheckbox.checked = isMuted;
+                  damageNumbersCheckbox.checked = showDamageNumbers;
+                  particleEffectsCheckbox.checked = showParticles;
+                  difficultyRadios.forEach(radio => {
+                      radio.checked = (radio.value === currentDifficulty); // currentDifficulty defaults to 'normal'
+                  });
+              }
+          }
+
+          function saveSettings() {
+              try {
+                  localStorage.setItem("waveDefenseSfxVolume", sfxVolume.toString());
+                  localStorage.setItem("waveDefenseMusicVolume", musicVolume.toString());
+                  localStorage.setItem("waveDefenseMuted", isMuted.toString());
+                  localStorage.setItem("waveDefenseDamageNumbers", showDamageNumbers.toString());
+                  localStorage.setItem("waveDefenseParticles", showParticles.toString());
+                  localStorage.setItem("waveDefenseDifficulty", currentDifficulty);
+              } catch (e) {
+                  console.warn("Could not save settings to localStorage:", e);
+              }
+          }
+
+        // ---------------------------
+        // Difficulty Application
+        // ---------------------------
+          function applyDifficultySettings() {
+              // Call this during init() and restartGame()
+              const diffModifiers = difficultySettings[currentDifficulty];
+              if (!diffModifiers) {
+                  console.error("Invalid difficulty selected:", currentDifficulty, "Using normal.");
+                  currentDifficulty = 'normal';
+                  // Re-check radio button if needed (though loadSettings should handle this)
+                  difficultyRadios.forEach(radio => { radio.checked = (radio.value === 'normal'); });
+                  applyDifficultySettings(); // Re-run with corrected difficulty
+                  return;
+              }
+
+              maxHealth = diffModifiers.startingHealth; // Store max health based on difficulty
+              health = maxHealth; // Start with full health for the chosen difficulty
+              gold = diffModifiers.startingGold;
+
+              // Update low health class immediately based on new maxHealth
+              if (healthCounterDiv) {
+                  if (health <= maxHealth * LOW_HEALTH_THRESHOLD_PERCENT && health > 0) {
+                      healthCounterDiv.classList.add('low-health');
+                  } else {
+                      healthCounterDiv.classList.remove('low-health');
+                  }
+              }
+          }
+
+        // ---------------------------
+        // Wave and Enemy Logic
+        // ---------------------------
+          function startWave() {
+              if (waveActive || gameOver || gameWon || currentWave >= totalWaves) return;
+
+              // Clear any pending spawn from a previous wave start attempt or delay
+              if (spawnTimeoutId) {
+                  clearTimeout(spawnTimeoutId);
+                  spawnTimeoutId = null;
+              }
+
+              // --- Update Button States ---
+              startButton.disabled = true; // Disable start button immediately
+              startButton.textContent = "Wave Active";
+              startButton.classList.remove('hidden'); // Ensure start is visible
+              nextWaveButton.classList.add('hidden'); // Ensure next wave is hidden
+              nextPathIndexToShow = -1; // Hide path indicator when wave starts
+              // --- End Button States Update ---
+
+              waveActive = true;
+              interestInfoText.textContent = ""; // Clear interest text
+
+              currentWave++;
+              playSound('wave_start', 0.3);
+              const waveConfig = waveCompositions[currentWave - 1];
+              if (!waveConfig) {
+                  console.error(`Wave composition for wave ${currentWave} not found! Ending game.`);
+                  gameWon = true;
+                  updateHighScore();
+                  updateUI();
+                  return;
+              }
+
+              waveEnemiesRemaining = 0;
+              waveConfig.composition.forEach(group => waveEnemiesRemaining += group.count);
+              enemiesKilledThisWave = 0;
+
+              waveInfo.textContent = `Wave ${currentWave} incoming!`;
+              waveInfo.classList.add('visible');
+              setTimeout(() => { if (waveInfo.textContent.includes("incoming")) waveInfo.classList.remove('visible'); }, 2500);
+
+              let spawnQueue = [];
+              waveConfig.composition.forEach(group => {
+                  for (let i = 0; i < group.count; i++) spawnQueue.push(group.type);
+              });
+              let spawnIndex = 0;
+
+              // Function to handle spawning the next enemy in the queue
+              function spawnNextEnemy() {
+                  // Don't spawn if paused, game over, or won
+                  if (paused || gameOver || gameWon) {
+                      // If the wave should still be active and enemies remain, reschedule the check
+                      if (waveActive && spawnIndex < spawnQueue.length) {
+                          if (spawnTimeoutId) clearTimeout(spawnTimeoutId);
+                          // Reschedule using the base interval. The game loop's step=0 handles the pause.
+                          spawnTimeoutId = setTimeout(spawnNextEnemy, waveConfig.interval);
+                      }
+                      return; // Exit function if paused/game over
+                  }
+
+                  // If more enemies to spawn in this wave
+                  if (spawnIndex < spawnQueue.length) {
+                      spawnEnemy(spawnQueue[spawnIndex], waveConfig.baseHealth, waveConfig.baseSpeed);
+                      spawnIndex++;
+
+                      // If there are still more enemies after this one, schedule the next spawn
+                      if (spawnIndex < spawnQueue.length) {
+                          if (spawnTimeoutId) clearTimeout(spawnTimeoutId);
+                          // Schedule next spawn, adjusting interval by current gameSpeed
+                          spawnTimeoutId = setTimeout(spawnNextEnemy, waveConfig.interval / gameSpeed);
+                      } else {
+                          spawnTimeoutId = null; // No more enemies left in the queue for this wave
+                      }
+                  } else {
+                      spawnTimeoutId = null; // Queue is empty
+                  }
+              }
+              // Start the first spawn, adjusting the initial delay by game speed
+              spawnTimeoutId = setTimeout(spawnNextEnemy, waveConfig.interval / gameSpeed);
+
+              updateUI();
+          }
+
+          function startNextWave() {
+              if (waveActive || gameOver || gameWon) return;
+              playSound('ui_click');
+              startWave(); // Directly call startWave
+          }
+
+          function spawnEnemy(typeKey, baseHealth, baseSpeed) {
+              const typeData = enemyTypes[typeKey];
+              if (!typeData) { console.warn(`Unknown enemy type: ${typeKey}`); return; }
+
+              // Apply difficulty modifiers here
+              const diffModifiers = difficultySettings[currentDifficulty];
+              let calculatedHealth = Math.max(1, Math.floor(baseHealth * typeData.healthMult * diffModifiers.enemyHealthMult)); // Ensure at least 1 health
+              let calculatedSpeed = baseSpeed * typeData.speedMult * diffModifiers.enemySpeedMult;
+              let calculatedGoldReward = Math.floor(typeData.goldReward * diffModifiers.goldRewardMult);
+
+              let enemy = {
+                  x: waypoints[0].x, y: waypoints[0].y,
+                  size: ENEMY_SIZE,
+                  speed: calculatedSpeed,
+                  maxHealth: calculatedHealth,
+                  health: calculatedHealth,
+                  waypointIndex: 0,
+                  type: typeKey, name: typeData.name, color: typeData.color,
+                  goldReward: calculatedGoldReward,
+                  scoreReward: typeData.scoreReward, // Score reward not modified by difficulty
+                  slowTimer: 0, slowAmount: 0, stunTimer: 0,
+                  isFlying: typeData.isFlying || false,
+                  armor: typeData.armor || 0, maxArmor: typeData.armor || 0, armorColor: typeData.armorColor || null,
+                  isHealer: typeKey === 'healer',
+                  healAmount: typeData.healAmount || 0, healRadius: typeData.healRadius || 0,
+                  healCooldown: Math.random() * (typeData.healCooldownMax || 2), healCooldownMax: typeData.healCooldownMax || 2,
+                  drawOffsetY: 0, animTimer: Math.random() * Math.PI * 2
+              };
+              enemies.push(enemy);
+          }
+
+          function updateEnemies(step) {
+             // Loop backwards for safe removal
+             for (let i = enemies.length - 1; i >= 0; i--) {
+                 let enemy = enemies[i];
+
+                 // Update animation timer for visual effects (like bobbing)
+                 enemy.animTimer += step * 0.1 * enemy.speed;
+                 enemy.drawOffsetY = Math.sin(enemy.animTimer) * (enemy.isFlying ? 2 : 1);
+
+                 // If stunned, skip movement and actions for this step
+                 if (enemy.stunTimer > 0) {
+                     enemy.stunTimer -= (step / 60); // Decrease stun timer
+                     continue; // Skip the rest of the update for this enemy
+                 }
+
+                 // Healer Logic
+                 if (enemy.isHealer && enemy.healCooldown <= 0) {
+                     enemy.healCooldown = enemy.healCooldownMax; // Reset cooldown
+                     let healedSomeone = false;
+                     // Iterate through other enemies to find heal targets
+                     enemies.forEach(other => {
+                         // Check if target is valid (not self, not healer, not flying, damaged, within radius)
+                         if (other !== enemy && !other.isHealer && !other.isFlying && other.health < other.maxHealth && getDistance(enemy.x, enemy.y, other.x, other.y) <= enemy.healRadius) {
+                             other.health = Math.min(other.maxHealth, other.health + enemy.healAmount); // Heal
+                             // Add heal particle effect
+                             particles.push({ x: other.x, y: other.y - other.size / 2, radius: 8, color: 'rgba(0, 255, 0, 0.7)', dx: 0, dy: -0.5, lifetime: 0.5, type: 'heal_pulse', initialLifetime: 0.5 });
+                             healedSomeone = true;
+                         }
+                     });
+                     if (healedSomeone) playSound('heal', 0.15); // Play sound if heal occurred
+                 } else if (enemy.isHealer) {
+                     enemy.healCooldown -= (step / 60); // Decrease heal cooldown
+                 }
+
+                 // Movement Logic: Determine target position
+                 let targetWaypoint;
+                 if (enemy.isFlying) { // Flying enemies target the base directly
+                     targetWaypoint = BASE_POSITION;
+                 } else { // Ground enemies follow waypoints
+                     if (enemy.waypointIndex >= waypoints.length) { // If past last waypoint, target base
+                         targetWaypoint = BASE_POSITION;
+                     } else { // Otherwise, target the next waypoint
+                         targetWaypoint = waypoints[enemy.waypointIndex];
+                     }
+                 }
+
+                 // Calculate vector and distance to the target
+                 let dx = targetWaypoint.x - enemy.x;
+                 let dy = targetWaypoint.y - enemy.y;
+                 let distanceToTarget = Math.sqrt(dx * dx + dy * dy);
+                 // Define a threshold for reaching the target (adjust as needed)
+                 const reachThreshold = enemy.speed * step * 0.5 + 1;
+
+                 // Check if enemy reached the target
+                 if (distanceToTarget < reachThreshold) {
+                     if (enemy.isFlying || enemy.waypointIndex >= waypoints.length) { // Reached base
+                         enemyReachedBase(enemy, i); continue; // Process base reach & remove enemy
+                     } else { // Reached a waypoint
+                         enemy.waypointIndex++; // Move to next waypoint index
+                         // Recalculate target for the remainder of this step if needed (optional, can skip for simplicity)
+                         // targetWaypoint = waypoints[enemy.waypointIndex];
+                         // dx = targetWaypoint.x - enemy.x; dy = targetWaypoint.y - enemy.y;
+                         // distanceToTarget = Math.sqrt(dx * dx + dy * dy);
+                         continue; // Continue to next loop iteration (or process remaining move in this step)
+                     }
+                 }
+
+                 // Apply speed modifications (slow effect)
+                 let currentSpeed = enemy.speed;
+                 if (enemy.slowTimer > 0) {
+                     currentSpeed *= (1 - enemy.slowAmount); // Reduce speed
+                     enemy.slowTimer -= (step / 60); // Decrease slow timer
+                 }
+                 currentSpeed = Math.max(0.1, currentSpeed); // Ensure minimum speed
+
+                 // Calculate movement distance for this step
+                 const moveDistance = Math.min(distanceToTarget, currentSpeed * step);
+
+                 // Move enemy towards target if distance is significant
+                 if (distanceToTarget > 0.01) {
+                     enemy.x += (dx / distanceToTarget) * moveDistance;
+                     enemy.y += (dy / distanceToTarget) * moveDistance;
+                 }
+             }
+         }
+
+         function enemyReachedBase(enemy, index) {
+             health -= 1; // Lose 1 health regardless of enemy type
+             playSound('error', 0.3);
+             triggerValueChangedAnimation(healthCounterDiv);
+             // Update low health class based on percentage threshold
+             if (maxHealth && health <= maxHealth * LOW_HEALTH_THRESHOLD_PERCENT && health > 0) {
+                 healthCounterDiv.classList.add('low-health');
+             }
+             // Check for game over
+             if (health <= 0) {
+                 health = 0; // Prevent negative health display
+                 gameOver = true;
+                 updateHighScore(); // Check/save high score on game over
+             }
+
+             // Screen flash effect
+             gameEffects.push({ type: 'screen_flash', color: 'rgba(255, 50, 50, 0.4)', lifetime: 0.2, initialLifetime: 0.2 });
+             // Remove enemy from the game
+             enemies.splice(index, 1);
+             waveEnemiesRemaining--; // Decrement count for wave status check
+             updateUI(); // Update health display
+         }
+
+         function damageEnemy(enemy, damageAmount, bulletType = null) {
+             const enemyIndex = enemies.indexOf(enemy);
+             // Return if enemy not found or already dead
+             if (enemyIndex === -1 || enemy.health <= 0) return false;
+
+             playSound('hit', 0.05);
+             let damageDealt = damageAmount;
+             let damageToArmor = 0;
+
+             // Armor calculation
+             if (enemy.armor > 0) {
+                 // Determine armor effectiveness based on damage type
+                 let armorEffectiveness = 1.0; // Default effectiveness
+                 if (bulletType === 'basic' || bulletType === 'freeze') armorEffectiveness = 0.5; // Less effective
+                 if (bulletType === 'bomb' || bulletType === 'cannon') armorEffectiveness = 1.5; // More effective
+
+                 // Calculate damage absorbed by armor
+                 damageToArmor = Math.min(enemy.armor, damageAmount * armorEffectiveness);
+                 // Calculate health damage that gets through armor
+                 damageDealt = Math.max(0, damageAmount - enemy.armor); // Damage reduced by armor value (not damageToArmor)
+                 enemy.armor -= damageToArmor; // Reduce armor
+
+                 // Display armor damage number (respect toggle)
+                 if (showDamageNumbers && damageToArmor > 0) {
+                     particles.push({ x: enemy.x + (Math.random() - 0.5) * 10, y: enemy.y - enemy.size / 2, text: Math.round(damageToArmor).toString(), color: '#bdc3c7', dx: (Math.random() - 0.5) * 0.5, dy: -0.8, lifetime: 0.7, type: 'damage_number', initialLifetime: 0.7 });
+                 }
+             }
+
+             // Apply health damage
+             enemy.health -= damageDealt;
+
+             // Display health damage number (respect toggle)
+             if (showDamageNumbers && damageDealt > 0) {
+                 particles.push({ x: enemy.x + (Math.random() - 0.5) * 10, y: enemy.y - enemy.size / 2 - 5, text: Math.round(damageDealt).toString(), color: bulletType === 'freeze' ? 'cyan' : (bulletType === 'cannon' ? 'orange' : (bulletType === 'bomb' ? 'yellow' : 'white')), dx: (Math.random() - 0.5) * 0.5, dy: -1, lifetime: 0.8, type: 'damage_number', initialLifetime: 0.8 });
+             }
+
+             // Check for enemy death
+             if (enemy.health <= 0) {
+                 let goldBefore = gold; let scoreBefore = score;
+
+                 // Award score and charge bomb meter
+                 score += enemy.scoreReward;
+                 bombMeter = Math.min(100, bombMeter + Math.floor(enemy.scoreReward / 2));
+
+                 // Award difficulty-modified gold
+                 let rewardGold = enemy.goldReward; // goldReward was already calculated in spawnEnemy
+                 gold += rewardGold;
+
+                 // Trigger UI animations if values changed
+                 if (gold > goldBefore) {
+                     triggerValueChangedAnimation(goldCounterDiv);
+                     updateUpgradeButtonState(); // Check upgrade button after gaining gold
+                 }
+                 if (score > scoreBefore) triggerValueChangedAnimation(scoreCounterDiv);
+
+                 // Create explosion particle effect (respect toggle)
+                 createExplosion(enemy.x, enemy.y, enemy.color, enemy.size * 1.5);
+
+                 // Remove enemy, update counts, handle kill streak
+                 enemies.splice(enemyIndex, 1);
+                 waveEnemiesRemaining--;
+                 enemiesKilledThisWave++;
+                 handleKillStreak();
+                 playSound('die', 0.15);
+
+                 updateUI(); // Update displays
+                 return true; // Enemy was killed
+             }
+             return false; // Enemy damaged but not killed
+         }
+
+         function handleKillStreak() {
+             killStreakCounter++;
+             lastKillTime = performance.now(); // Reset timer
+
+             // Check for streak bonus threshold
+             if (killStreakCounter > 0 && killStreakCounter % 5 === 0) {
+                 let bonusGold = killStreakCounter * 2; // Bonus gold calculation
+                 let goldBefore = gold;
+                 gold += bonusGold;
+
+                 // Animate gold counter if changed
+                 if (gold > goldBefore) {
+                     triggerValueChangedAnimation(goldCounterDiv);
+                     updateUpgradeButtonState(); // Check upgrade button state
+                 }
+                 playSound('streak', 0.2); // Play streak sound
+
+                 // Show streak info message
+                 waveInfo.textContent = `+${bonusGold}g KILL STREAK (${killStreakCounter})!`;
+                 waveInfo.classList.add('visible');
+                 setTimeout(() => { if (waveInfo.textContent.includes("KILL STREAK")) waveInfo.classList.remove('visible'); }, 1500);
+
+                 updateUI(); // Update streak display
+             }
+         }
+
+         function updateKillStreak(timestamp) {
+             // Reset streak if too much time has passed since last kill
+             if (killStreakCounter > 0 && (timestamp - lastKillTime > KILL_STREAK_DURATION)) {
+                 killStreakCounter = 0;
+                 updateUI(); // Update streak display
+             }
+         }
+
+        // ---------------------------
+        // Tower, Bullet, Bomb, Particles, Effects
+        // ---------------------------
+         function placeTower(x, y, typeKey) {
+             const typeData = towerTypes[typeKey];
+             // Check if placement is valid (type exists, enough gold, valid position)
+             if (!typeData || gold < typeData.cost || !isTowerPositionValid(x, y)) {
+                 playSound('error', 0.2);
+                 // Show placement failure particle effect
+                 particles.push({ x: x, y: y, radius: TOWER_SIZE/2, color: 'rgba(255,0,0,0.5)', dx: 0, dy: 0, lifetime: 0.2, type: 'placement_fail', initialLifetime: 0.2 });
+                 return false; // Placement failed
+             }
+
+             // Create the tower object
+             let tower = {
+                 x: x, y: y, type: typeKey, name: typeData.name, size: TOWER_SIZE,
+                 range: typeData.range, damage: typeData.damage, fireRate: typeData.fireRate,
+                 fireCountdown: 0, color: typeData.color, bulletColor: typeData.bulletColor,
+                 target: null, level: 1, maxLevel: typeData.maxLevel,
+                 investedCost: typeData.cost, // Track total cost for selling/refunds
+                 // Initialize potential upgradeable stats
+                 splashRadius: typeData.splashRadius || 0,
+                 pierceCount: typeData.pierceCount || 0,
+                 numTargets: typeData.numTargets || 1,
+                 stunChance: typeData.stunChance || 0, stunDuration: typeData.stunDuration || 0.5,
+                 slowDuration: typeData.slowDuration || 0, slowAmount: typeData.slowAmount || 0,
+                 freezeAuraRadius: typeData.freezeAuraRadius || 0,
+                 // Targeting capabilities
+                 targetsFlying: typeData.targetsFlying || false,
+                 canTargetGround: typeData.canTargetGround !== undefined ? typeData.canTargetGround : true,
+                 // Visual effect timers
+                 firingEffectTimer: 0,
+                 placementEffectTimer: PLACEMENT_EFFECT_DURATION // Start placement animation
+             };
+             towers.push(tower);
+
+             // Deduct gold and update UI
+             let goldBefore = gold;
+             gold -= typeData.cost;
+             if(gold < goldBefore) {
+                 triggerValueChangedAnimation(goldCounterDiv);
+                 updateUpgradeButtonState(); // Check if spending gold disables an open upgrade button
+             }
+             playSound('place'); // Play placement sound
+
+             // Add placement visual effect (expanding ring)
+             gameEffects.push({ x: x, y: y, radius: TOWER_SIZE / 2, maxRadius: TOWER_SIZE * 1.5, color: 'rgba(255, 255, 255, 0.7)', lifetime: PLACEMENT_EFFECT_DURATION, type: 'placement_ring', initialLifetime: PLACEMENT_EFFECT_DURATION });
+
+             updateUI(); // Update main gold display and potentially tower button states
+             return true; // Placement successful
+         }
+
+         function isTowerPositionValid(x, y) {
+             // 1. Check canvas boundaries
+             if (x < TOWER_SIZE / 2 || x > GAME_WIDTH - TOWER_SIZE / 2 || y < TOWER_SIZE / 2 || y > GAME_HEIGHT - TOWER_SIZE / 2) return false;
+
+             // 2. Check distance from existing towers
+             const towerSpacing = TOWER_SIZE * 1.1; // Minimum distance between tower centers
+             for (let tower of towers) {
+                 if (getDistance(tower.x, tower.y, x, y) < towerSpacing) return false;
+             }
+
+             // 3. Check distance from the base
+             if (getDistance(BASE_POSITION.x, BASE_POSITION.y, x, y) < BASE_SIZE + TOWER_SIZE / 2) return false;
+
+             // 4. Check distance from the enemy path
+             const pathTolerance = TOWER_SIZE / 2 + ENEMY_SIZE / 2 + 2; // Minimum distance from path edge
+             if (!waypoints || waypoints.length < 2) return true; // No path, placement is valid (shouldn't happen in normal game)
+             // Check start point
+             if (getDistance(x, y, waypoints[0].x, waypoints[0].y) < pathTolerance) return false;
+             // Check line segments
+             for (let i = 0; i < waypoints.length - 1; i++) {
+                 if (isPointNearLine(x, y, waypoints[i].x, waypoints[i].y, waypoints[i + 1].x, waypoints[i + 1].y, pathTolerance)) {
+                     return false; // Too close to this segment
+                 }
+             }
+
+             return true; // Position is valid
+         }
+
+         function isPointNearLine(px, py, x1, y1, x2, y2, tolerance) {
+             // Calculates the shortest distance from point (px, py) to the line segment (x1,y1)-(x2,y2)
+             let lineLengthSqr = (x2 - x1) ** 2 + (y2 - y1) ** 2;
+             if (lineLengthSqr === 0) return getDistance(px, py, x1, y1) < tolerance; // Line is a point
+             // Project point onto the line (parameter t represents position along the line)
+             let t = ((px - x1) * (x2 - x1) + (py - y1) * (y2 - y1)) / lineLengthSqr;
+             // Clamp t to be between 0 and 1 to stay within the segment
+             t = Math.max(0, Math.min(1, t));
+             // Calculate the closest point on the line segment
+             let closestX = x1 + t * (x2 - x1);
+             let closestY = y1 + t * (y2 - y1);
+             // Check distance from the point to the closest point on the segment
+             return getDistance(px, py, closestX, closestY) < tolerance;
+         }
+
+         function updateTowers(step) {
+             for (let tower of towers) {
+                 // Update visual effect timers
+                 if (tower.firingEffectTimer > 0) tower.firingEffectTimer -= (step / 60);
+                 if (tower.placementEffectTimer > 0) tower.placementEffectTimer -= (step / 60);
+
+                 // Apply Freeze Aura (if applicable)
+                 if (tower.freezeAuraRadius > 0 && tower.type === 'freeze' && tower.level === tower.maxLevel) {
+                     enemies.forEach(enemy => {
+                         // Apply slow only to ground enemies within aura radius
+                         if (!enemy.isFlying && getDistance(tower.x, tower.y, enemy.x, enemy.y) < tower.freezeAuraRadius) {
+                             enemy.slowTimer = Math.max(enemy.slowTimer, 0.1); // Apply a short duration slow continuously
+                             enemy.slowAmount = Math.max(enemy.slowAmount, tower.slowAmount * 0.5); // Aura slow is less potent
+                         }
+                     });
+                 }
+
+                 // Firing Logic: Update cooldown
+                 if (tower.fireCountdown > 0) { tower.fireCountdown -= (step / 60); }
+
+                 // Check if current target is still valid
+                 let targetInvalid = !tower.target || // No target
+                                     tower.target.health <= 0 || // Target dead
+                                     !enemies.includes(tower.target) || // Target removed from game
+                                     getDistance(tower.x, tower.y, tower.target.x, tower.target.y) > tower.range || // Target out of range
+                                     (!tower.canTargetGround && !tower.target.isFlying) || // Tower can't hit ground, target is ground
+                                     (!tower.targetsFlying && tower.target.isFlying);      // Tower can't hit flying, target is flying
+
+                 if (targetInvalid) {
+                     tower.target = findTarget(tower); // Find a new target if current one is invalid
+                 }
+
+                 // If a valid target exists and cooldown is ready, fire
+                 if (tower.target && tower.fireCountdown <= 0) {
+                     fireBullet(tower);
+                     tower.fireCountdown = 1 / tower.fireRate; // Reset cooldown
+                     tower.firingEffectTimer = FIRING_EFFECT_DURATION; // Start firing visual effect
+                 }
+             }
+         }
+
+         function findTarget(tower) {
+             let potentialTargets = [];
+             // Iterate through all current enemies
+             for (let enemy of enemies) {
+                 // Check if tower type can target this enemy type (Ground/Flying)
+                 const canTarget = (tower.canTargetGround && !enemy.isFlying) || (tower.targetsFlying && enemy.isFlying);
+                 if (!canTarget) continue; // Skip if this tower can't hit this enemy type
+
+                 // Check if enemy is within range
+                 let distance = getDistance(tower.x, tower.y, enemy.x, enemy.y);
+                 if (distance < tower.range) {
+                     // Calculate enemy's progress along the path (higher is further)
+                     let progress = 0;
+                     if (enemy.isFlying) {
+                         // Flying enemies progress is based on distance remaining to base
+                         progress = (GAME_WIDTH + GAME_HEIGHT) - getDistance(enemy.x, enemy.y, BASE_POSITION.x, BASE_POSITION.y);
+                     } else {
+                         // Ground enemies progress is based on waypoint index and distance to next
+                         progress = enemy.waypointIndex * 1000; // Base progress on waypoint index
+                         if (enemy.waypointIndex < waypoints.length) {
+                             // Add inverse distance to next waypoint for finer sorting within the same segment
+                             let distToNext = getDistance(enemy.x, enemy.y, waypoints[enemy.waypointIndex].x, waypoints[enemy.waypointIndex].y);
+                             progress += (1000 - distToNext);
+                         } else {
+                             // If past last waypoint, use inverse distance to base
+                             progress += (1000 - getDistance(enemy.x, enemy.y, BASE_POSITION.x, BASE_POSITION.y));
+                         }
+                     }
+                     potentialTargets.push({ enemy, distance, progress });
+                 }
+             }
+             if (potentialTargets.length === 0) return null; // No valid targets found
+
+             // Sort targets: Prioritize highest progress (closest to end), then closest distance as tie-breaker
+             potentialTargets.sort((a, b) => {
+                 if (b.progress !== a.progress) {
+                     return b.progress - a.progress; // Higher progress first
+                 }
+                 return a.distance - b.distance; // Then closer distance first
+             });
+
+             return potentialTargets[0].enemy; // Return the best target
+         }
+
+         function fireBullet(tower) {
+             const targetEnemy = tower.target;
+             if (!targetEnemy) return; // Should have a target, but double-check
+
+             playSound(`fire_${tower.type}`); // Play firing sound based on tower type
+
+             // Muzzle flash particle effect (respect toggle)
+             if (showParticles) {
+                 const angleToTarget = Math.atan2(targetEnemy.y - tower.y, targetEnemy.x - tower.x);
+                 const flashX = tower.x + Math.cos(angleToTarget) * (tower.size / 2 + 2);
+                 const flashY = tower.y + Math.sin(angleToTarget) * (tower.size / 2 + 2);
+                 particles.push({ x: flashX, y: flashY, radius: 4, color: tower.bulletColor, dx: 0, dy: 0, lifetime: 0.1, type: 'muzzle_flash', initialLifetime: 0.1 });
+             }
+
+             // Handle multi-target towers (like Cannon)
+             if (tower.numTargets > 1) {
+                 let targetsFound = [targetEnemy]; // Start with the primary target
+                 let otherPotentialTargets = [];
+                 // Find other nearby valid targets
+                 enemies.forEach(enemy => {
+                     if (enemy !== targetEnemy) { // Don't re-target the primary
+                         const canTarget = (tower.canTargetGround && !enemy.isFlying) || (tower.targetsFlying && enemy.isFlying);
+                         if (canTarget) {
+                             let dist = getDistance(tower.x, tower.y, enemy.x, enemy.y);
+                             if (dist < tower.range) { otherPotentialTargets.push({enemy, dist}); }
+                         }
+                     }
+                 });
+                 // Sort other potential targets by distance
+                 otherPotentialTargets.sort((a, b) => a.dist - b.dist);
+                 // Add targets up to the tower's limit
+                 for(let i = 0; i < otherPotentialTargets.length && targetsFound.length < tower.numTargets; i++) {
+                     targetsFound.push(otherPotentialTargets[i].enemy);
+                 }
+                 // Create a bullet for each target
+                 targetsFound.forEach(target => bullets.push(createBulletData(tower, target)));
+             } else { // Single target tower
+                 bullets.push(createBulletData(tower, targetEnemy));
+             }
+         }
+
+         function createBulletData(tower, target) {
+             // Creates a bullet object with properties inherited from the tower
+             return {
+                 x: tower.x, y: tower.y, size: BULLET_SIZE, speed: BULLET_SPEED,
+                 damage: tower.damage, color: tower.bulletColor, target: target,
+                 // Special properties
+                 pierceCount: tower.pierceCount || 0,
+                 piercedEnemies: [], // Track enemies already hit by this bullet (for pierce)
+                 splashRadius: tower.splashRadius || 0,
+                 isFreezeBullet: tower.type === 'freeze',
+                 slowDuration: tower.slowDuration, slowAmount: tower.slowAmount,
+                 // Stun check (roll for stun chance)
+                 isStunBullet: (tower.stunChance || 0) > 0 && Math.random() < tower.stunChance,
+                 stunDuration: tower.stunDuration,
+                 bulletType: tower.type // Store originating tower type for armor calc etc.
+             };
+         }
+
+         function updateBullets(step) {
+             for (let i = bullets.length - 1; i >= 0; i--) {
+                 let bullet = bullets[i];
+
+                 // Check if bullet's target is still valid
+                 if (!bullet.target || bullet.target.health <= 0 || !enemies.includes(bullet.target)) {
+                     // If target is invalid and bullet can pierce, try finding a new target
+                     if (bullet.pierceCount > 0) {
+                         let newTarget = findPierceTarget(bullet);
+                         if (newTarget) {
+                             bullet.target = newTarget; // Assign new target
+                         } else {
+                             bullets.splice(i, 1); continue; // Remove bullet if no new target found
+                         }
+                     } else { // If no pierce, remove bullet
+                         bullets.splice(i, 1); continue;
+                     }
+                 }
+
+                 // Move bullet towards its current target
+                 let dx = bullet.target.x - bullet.x;
+                 let dy = bullet.target.y - bullet.y;
+                 let distance = Math.sqrt(dx * dx + dy * dy);
+                 const hitThreshold = bullet.size + ENEMY_SIZE / 2; // Collision distance
+
+                 // Check for hit
+                 if (distance < hitThreshold) {
+                     let enemyHit = bullet.target;
+                     let enemyKilled = false;
+
+                     // Apply bullet effects (slow, stun) before damage
+                     if (bullet.isFreezeBullet && !enemyHit.isFlying) { // Freeze only affects ground
+                         enemyHit.slowTimer = Math.max(enemyHit.slowTimer, bullet.slowDuration);
+                         enemyHit.slowAmount = Math.max(enemyHit.slowAmount, bullet.slowAmount);
+                     }
+                     if (bullet.isStunBullet) {
+                         enemyHit.stunTimer = Math.max(enemyHit.stunTimer, bullet.stunDuration);
+                     }
+
+                     // Damage the enemy
+                     enemyKilled = damageEnemy(enemyHit, bullet.damage, bullet.bulletType);
+
+                     // Apply splash damage
+                     if (bullet.splashRadius > 0) {
+                         // Splash ring particle (respect toggle)
+                         if (showParticles) {
+                             particles.push({ x: enemyHit.x, y: enemyHit.y, radius: bullet.splashRadius * 0.5, maxRadius: bullet.splashRadius, color: bullet.color, lifetime: 0.3, type: 'splash_ring', initialLifetime: 0.3 });
+                         }
+                         // Damage nearby ground enemies
+                         enemies.forEach(otherEnemy => {
+                             if (otherEnemy !== enemyHit && !otherEnemy.isFlying && getDistance(enemyHit.x, enemyHit.y, otherEnemy.x, otherEnemy.y) < bullet.splashRadius) {
+                                 damageEnemy(otherEnemy, bullet.damage * 0.5, bullet.bulletType); // Splash deals 50% damage
+                             }
+                         });
+                     }
+
+                     // Handle piercing
+                     if (bullet.pierceCount > 0 && !enemyKilled) { // Can only pierce if target survives
+                         bullet.pierceCount--;
+                         bullet.piercedEnemies.push(enemyHit); // Add hit enemy to pierced list
+                         let newTarget = findPierceTarget(bullet); // Find next target
+                         if (newTarget) {
+                             bullet.target = newTarget; // Assign new target
+                         } else {
+                             bullets.splice(i, 1); // Remove bullet if no more targets
+                         }
+                     } else { // Bullet doesn't pierce or target was killed
+                         bullets.splice(i, 1); // Remove bullet
+                     }
+                     continue; // Move to next bullet
+                 } else { // Bullet hasn't hit yet, continue moving
+                     const moveDistance = Math.min(distance, bullet.speed * step);
+                     if (distance > 0.01) { // Avoid division by zero if already at target
+                         bullet.x += (dx / distance) * moveDistance;
+                         bullet.y += (dy / distance) * moveDistance;
+                     } else { // Snap to target if extremely close (unlikely needed)
+                         bullet.x = bullet.target.x;
+                         bullet.y = bullet.target.y;
+                     }
+                 }
+             }
+         }
+
+         function findPierceTarget(bullet) {
+             // Finds the next valid target for a piercing bullet
+             let bestTarget = null;
+             let minDistance = Infinity;
+             // Try to find the tower that fired this bullet (needed for targeting rules)
+             // Note: This assumes bulletColor is unique enough or finds the first match.
+             const originalTower = towers.find(t => t.bulletColor === bullet.color);
+
+             enemies.forEach(enemy => {
+                 // Check if enemy hasn't already been pierced by this bullet and is not the current target
+                 if (!bullet.piercedEnemies.includes(enemy) && enemy !== bullet.target) {
+                     // Ensure the original tower type could target this enemy type (if tower found)
+                     const canTarget = originalTower ? (originalTower.canTargetGround && !enemy.isFlying) || (originalTower.targetsFlying && enemy.isFlying) : true; // Assume can target if tower lookup fails
+                     if(canTarget) {
+                         let distToEnemy = getDistance(bullet.x, bullet.y, enemy.x, enemy.y);
+                         // Find the closest valid target
+                         if (distToEnemy < minDistance) {
+                             minDistance = distToEnemy;
+                             bestTarget = enemy;
+                         }
+                     }
+                 }
+             });
+             return bestTarget;
+         }
+
+         function activateBomb() {
+             // Check if bomb is ready and game is active
+             if (bombMeter >= 100 && !gameOver && !gameWon) {
+                 playSound('bomb', 0.4);
+                 gameEffects.push({ type: 'screen_flash', color: 'rgba(255, 100, 50, 0.7)', lifetime: 0.3, initialLifetime: 0.3 });
+
+                 // Damage all currently active enemies
+                 let enemiesToBomb = [...enemies]; // Copy array as damaging might remove enemies
+                 enemiesToBomb.forEach(enemy => {
+                     if (enemies.includes(enemy)) { // Check if enemy still exists
+                         damageEnemy(enemy, 100, 'bomb'); // Bomb damage (value and type)
+                     }
+                 });
+                 bombMeter = 0; // Reset bomb meter
+                 updateUI(); // Update bomb button display
+             } else if (bombMeter < 100) { // Play error if not ready
+                 playSound('error', 0.2);
+             }
+         }
+
+         function createExplosion(x, y, color, size = ENEMY_SIZE) {
+             if (!showParticles) return; // Skip if particles are toggled off
+             // Create multiple small particles radiating outwards
+             const count = Math.max(5, Math.floor(size / 1.5)); // Number of particles based on size
+             for (let i = 0; i < count; i++) {
+                 const angle = Math.random() * Math.PI * 2;
+                 const speed = Math.random() * (size / 5) + 1; // Random speed
+                 const lifetime = Math.random() * 0.6 + 0.4; // Random lifetime
+                 particles.push({
+                     x: x, y: y, radius: Math.random() * (size / 5) + 1, // Random size
+                     color: color, dx: Math.cos(angle) * speed, dy: Math.sin(angle) * speed, // Velocity
+                     lifetime: lifetime, alpha: 0.9, type: 'explosion', initialLifetime: lifetime
+                 });
+             }
+         }
+
+         function updateParticles(step) {
+             for (let i = particles.length - 1; i >= 0; i--) {
+                 let p = particles[i];
+                 // Immediately remove particles if their type is toggled off
+                 if (p.type === 'damage_number' && !showDamageNumbers) { particles.splice(i, 1); continue; }
+                 if ((p.type === 'explosion' || p.type === 'muzzle_flash' || p.type === 'splash_ring') && !showParticles) { particles.splice(i, 1); continue; }
+
+                 // Update position and lifetime
+                 p.x += p.dx * step; p.y += p.dy * step;
+                 p.lifetime -= (step / 60);
+                 p.alpha = Math.max(0, p.lifetime / (p.initialLifetime || 1)); // Fade out based on lifetime
+
+                 // Specific particle type updates (gravity, friction, etc.)
+                 if (p.type === 'damage_number') { p.dy += 0.02 * step; } // Add slight gravity
+                 else if (p.type === 'heal_pulse') { p.radius += 0.2 * step; p.alpha *= 0.7; } // Expand and fade faster
+                 else if (p.type === 'explosion') { p.dx *= (1 - 0.02 * step); p.dy *= (1 - 0.02 * step); } // Apply drag/friction
+                 else if (p.type === 'placement_fail') { p.radius += 0.5 * step; } // Expand fail indicator
+                 // Muzzle flash, splash ring, etc. fade naturally with alpha calculation
+
+                 // Remove expired particles
+                 if (p.lifetime <= 0) particles.splice(i, 1);
+             }
+         }
+
+         function updateGameEffects(step) {
+             // Update screen flashes, placement rings etc.
+             for (let i = gameEffects.length - 1; i >= 0; i--) {
+                 let effect = gameEffects[i];
+                 effect.lifetime -= (step / 60);
+
+                 // Update effect properties based on type (e.g., expanding radius)
+                 if (effect.type === 'placement_ring') {
+                    effect.radius = effect.maxRadius - (effect.maxRadius - (TOWER_SIZE / 2)) * (effect.lifetime / effect.initialLifetime);
+                 }
+
+                 if (effect.lifetime <= 0) {
+                     gameEffects.splice(i, 1);
+                 }
+             }
+         }
+
+         function checkWaveStatus() {
+             // Check if the current wave is active and all enemies are gone
+             if (waveActive && enemies.length === 0 && waveEnemiesRemaining <= 0) {
+                 waveActive = false; // Mark wave as inactive
+                 startButton.disabled = true; // Keep Start button disabled until next wave decision
+                 nextWaveButton.classList.add('hidden'); // Ensure Next Wave button is hidden initially
+
+                 // --- Calculate and Award Interest ---
+                 let interestEarned = Math.floor(gold * INTEREST_RATE);
+                 if (interestEarned > 0 && currentWave < totalWaves) { // Only award interest if not the final wave
+                     let goldBefore = gold;
+                     gold += interestEarned;
+                     if (gold > goldBefore) {
+                         triggerValueChangedAnimation(goldCounterDiv);
+                         updateUpgradeButtonState(); // Check upgrades after getting gold
+                     }
+                     // Display interest message temporarily
+                     interestInfoText.textContent = `+${interestEarned}g Interest!`;
+                     setTimeout(() => { interestInfoText.textContent = ""; }, 3000);
+                 }
+
+                 // --- Check for Game Victory ---
+                 if (currentWave === totalWaves) {
+                     gameWon = true;
+                     updateHighScore();
+                     startButton.disabled = true; // Ensure buttons are disabled on win
+                     startButton.classList.add('hidden');
+                     nextWaveButton.classList.add('hidden');
+                     nextPathIndexToShow = -1; // Hide path indicator on win
+                     updateUI();
+                     return; // Exit function, game is over
+                 }
+
+                 // --- Wave Cleared (Not Victory Yet) ---
+                 // Display wave cleared message
+                 waveInfo.textContent = `Wave ${currentWave} Cleared!`;
+                 waveInfo.classList.add('visible');
+                 setTimeout(() => { if (waveInfo.textContent.includes("Cleared")) waveInfo.classList.remove('visible'); }, 2000);
+
+                 // --- Path Change Logic ---
+                 const nextPathIndex = Math.min(Math.floor(currentWave / wavesPerPath), paths.length - 1);
+                 nextPathIndexToShow = nextPathIndex; // Set indicator for the *next* wave's path
+
+                 const currentPathIndex = Math.min(Math.floor((currentWave - 1) / wavesPerPath), paths.length - 1);
+
+                 // Check if the path index actually changes (happens after waves 5, 10, 15, etc.)
+                 if (currentWave > 0 && currentWave % wavesPerPath === 0 && nextPathIndex !== currentPathIndex) {
+                     console.log(`Path changing after Wave ${currentWave}. New path index: ${nextPathIndex}`);
+                     let refund = 0;
+                     towers.forEach(t => { refund += Math.floor(t.investedCost * 0.5); }); // 50% refund (not difficulty modified)
+                     gold += refund;
+                     if (refund > 0) {
+                         triggerValueChangedAnimation(goldCounterDiv);
+                         updateUpgradeButtonState();
+                     }
+                     towers = []; bullets = []; // Remove towers and bullets
+                     selectedTowerForManagement = null; hideTowerManagementContainer(); // Deselect tower & hide panel
+
+                     // Display path changing message
+                     waveInfo.textContent = `Path Changing! Towers Refunded (+${refund}g)`;
+                     waveInfo.classList.add('visible');
+                     setTimeout(() => { if (waveInfo.textContent.includes("Path Changing")) waveInfo.classList.remove('visible'); }, 3500);
+
+                     waypoints = paths[nextPathIndex]; // Update waypoints for the NEXT wave
+
+                     // --- Update Buttons for Path Change ---
+                     startButton.disabled = false; // Enable Start Wave button
+                     startButton.textContent = "▶ Start Wave";
+                     startButton.classList.remove('hidden'); // Show Start button
+                     nextWaveButton.classList.add('hidden'); // Hide Next Wave button
+                     // --- End Button Update ---
+
+                 } else { // Path not changing
+                     // --- Update Buttons for Normal Wave End ---
+                     nextWaveButton.classList.remove('hidden'); // Show Next Wave button
+                     startButton.classList.add('hidden'); // Hide Start Wave button
+                     // --- End Button Update ---
+                 }
+                 updateUI(); // Update gold display, etc.
+             }
+         }
+
+
+        // ---------------------------
+        // Drawing Functions
+        // ---------------------------
+        function drawBase() {
+             ctx.save();
+             ctx.shadowColor = 'rgba(0,0,0,0.5)'; ctx.shadowBlur = 10; ctx.shadowOffsetX = 3; ctx.shadowOffsetY = 3;
+             ctx.beginPath(); ctx.arc(BASE_POSITION.x, BASE_POSITION.y, BASE_SIZE, 0, Math.PI * 2);
+             const gradient = ctx.createRadialGradient(BASE_POSITION.x, BASE_POSITION.y, BASE_SIZE * 0.5, BASE_POSITION.x, BASE_POSITION.y, BASE_SIZE);
+             gradient.addColorStop(0, '#55ef91'); gradient.addColorStop(1, '#2ecc71');
+             ctx.fillStyle = gradient; ctx.fill();
+             ctx.lineWidth = 3; ctx.strokeStyle = "#27ae60"; ctx.stroke();
+             ctx.restore();
+             // Draw damage overlay based on current health / max health
+             let healthPercent = maxHealth > 0 ? health / maxHealth : 0;
+             if (healthPercent < 1) {
+                 ctx.save(); ctx.globalCompositeOperation = 'source-atop'; // Draw only within the base circle
+                 ctx.fillStyle = `rgba(200, 0, 0, ${(1 - healthPercent) * 0.5})`; // Red overlay, opacity increases with damage
+                 ctx.beginPath(); ctx.arc(BASE_POSITION.x, BASE_POSITION.y, BASE_SIZE, 0, Math.PI * 2); ctx.fill();
+                 ctx.restore();
+             }
+        }
+        function drawWaypoints() {
+            // Draws the current enemy path
+             if (!waypoints || waypoints.length < 2) return;
+             ctx.save();
+             ctx.beginPath(); ctx.moveTo(waypoints[0].x, waypoints[0].y);
+             for (let i = 1; i < waypoints.length; i++) { ctx.lineTo(waypoints[i].x, waypoints[i].y); }
+             // Draw wider, darker path background
+             ctx.strokeStyle = "rgba(0,0,0,0.2)"; ctx.lineWidth = 28; ctx.lineCap = "round"; ctx.lineJoin = "round"; ctx.stroke();
+             // Draw dashed line overlay (animated)
+             ctx.strokeStyle = "rgba(255,255,255,0.1)"; ctx.lineWidth = 25; ctx.setLineDash([10, 10]);
+             const dashOffset = -(performance.now() / 50) % 20; // Animate the dash offset
+             ctx.lineDashOffset = dashOffset; ctx.stroke();
+             ctx.restore();
+        }
+
+        function drawNextPathIndicator() {
+            // Only draw indicator between waves if an upcoming path is set
+             if (waveActive || nextPathIndexToShow < 0 || nextPathIndexToShow >= paths.length) return;
+
+             const nextPath = paths[nextPathIndexToShow];
+             if (!nextPath || nextPath.length < 2) return;
+
+             ctx.save();
+             ctx.beginPath();
+             ctx.moveTo(nextPath[0].x, nextPath[0].y);
+             for (let i = 1; i < nextPath.length; i++) {
+                 ctx.lineTo(nextPath[i].x, nextPath[i].y);
+             }
+
+             // Style for the indicator (e.g., bright pulsing yellow dashes)
+             const pulseAlpha = 0.5 + Math.sin(performance.now() / 200) * 0.3; // Pulsing effect
+             ctx.strokeStyle = `rgba(255, 220, 0, ${pulseAlpha})`; // Bright yellow, pulsing alpha
+             ctx.lineWidth = 3; // Thinner than main path dashes
+             ctx.setLineDash([8, 6]); // Different dash pattern
+             const dashOffset = (performance.now() / 30) % 14; // Animate offset faster
+             ctx.lineDashOffset = dashOffset;
+             ctx.lineCap = "round";
+             ctx.lineJoin = "round";
+             ctx.shadowColor = 'rgba(255, 200, 0, 0.5)';
+             ctx.shadowBlur = 5;
+             ctx.stroke();
+
+             // Draw a small marker at the start point
+             ctx.beginPath();
+             ctx.arc(nextPath[0].x, nextPath[0].y, 8, 0, Math.PI * 2);
+             ctx.fillStyle = `rgba(255, 220, 0, ${pulseAlpha * 0.8})`;
+             ctx.fill();
+
+             ctx.restore();
+         }
+
+        function drawEnemies() {
+             enemies.forEach(enemy => {
+                 const healthBarWidth = enemy.size * 1.2; const healthBarHeight = 4;
+                 const barYOffset = enemy.size / 2 + 8; const healthPercent = Math.max(0, enemy.health / enemy.maxHealth);
+                 ctx.save(); ctx.translate(enemy.x, enemy.y + enemy.drawOffsetY); // Apply bobbing offset
+
+                 // Draw simple shadow ellipse
+                 ctx.beginPath(); ctx.ellipse(0, enemy.size * 0.4, enemy.size * 0.4, enemy.size * 0.15, 0, 0, Math.PI * 2);
+                 ctx.fillStyle = 'rgba(0,0,0,0.2)'; ctx.fill();
+
+                 // Draw enemy shape (circle, square, diamond)
+                 ctx.beginPath();
+                 if (enemy.type === 'flying') {
+                     ctx.moveTo(0, -enemy.size / 2); ctx.lineTo(enemy.size / 2, 0); ctx.lineTo(0, enemy.size / 2); ctx.lineTo(-enemy.size / 2, 0); ctx.closePath();
+                 } else if (enemy.type === 'tank') {
+                      ctx.rect(-enemy.size/2, -enemy.size/2, enemy.size, enemy.size);
+                 } else {
+                     ctx.arc(0, 0, enemy.size / 2, 0, Math.PI * 2);
+                 }
+                 ctx.fillStyle = enemy.color; ctx.fill();
+                 ctx.lineWidth = 1; ctx.strokeStyle = "rgba(0,0,0,0.6)"; ctx.stroke();
+
+                 // Draw Indicators (Armor, Healer, Slow, Stun)
+                 if (enemy.maxArmor > 0 && enemy.armor > 0) { ctx.strokeStyle = enemy.armorColor || "#bdc3c7"; ctx.lineWidth = 2 + (enemy.armor / enemy.maxArmor) * 2; ctx.stroke(); } // Armor
+                 if (enemy.isHealer) { ctx.beginPath(); let pulseRadius = enemy.size / 2 + 2 + Math.sin(enemy.animTimer * 2) * 1; ctx.arc(0, 0, pulseRadius, 0, Math.PI * 2); ctx.strokeStyle = `rgba(0, 255, 0, ${0.3 + Math.sin(enemy.animTimer * 2) * 0.2})`; ctx.lineWidth = 2; ctx.stroke(); } // Healer
+                 if (enemy.slowTimer > 0) { ctx.fillStyle = `rgba(50, 150, 255, ${0.2 + enemy.slowAmount * 0.3})`; ctx.fill(); } // Slow
+                 if (enemy.stunTimer > 0) { // Stun
+                      ctx.fillStyle = "yellow";
+                      for(let k=0; k<3; k++) { let angle = enemy.animTimer * 2 + k * (Math.PI * 2 / 3); let starX = Math.cos(angle) * (enemy.size/2 + 3); let starY = Math.sin(angle) * (enemy.size/2 + 3); ctx.beginPath(); ctx.arc(starX, starY, 2, 0, Math.PI * 2); ctx.fill(); }
+                 }
+                 ctx.restore(); // Restore transform
+
+                 // Draw health/armor bars above enemy
+                 const barX = enemy.x - healthBarWidth / 2; let currentBarY = enemy.y - barYOffset;
+                 // Armor bar (if applicable)
+                 if (enemy.maxArmor > 0) {
+                      const armorPercent = Math.max(0, enemy.armor / enemy.maxArmor);
+                      ctx.fillStyle = "#555"; ctx.fillRect(barX, currentBarY, healthBarWidth, healthBarHeight -1); // Background
+                      if (armorPercent > 0) { ctx.fillStyle = enemy.armorColor || "#bdc3c7"; ctx.fillRect(barX, currentBarY, healthBarWidth * armorPercent, healthBarHeight -1); } // Fill
+                      ctx.strokeStyle = "rgba(0,0,0,0.5)"; ctx.lineWidth = 0.5; ctx.strokeRect(barX, currentBarY, healthBarWidth, healthBarHeight -1); // Border
+                      currentBarY += healthBarHeight; // Move health bar down
+                 }
+                 // Health bar
+                 ctx.fillStyle = "#d9534f"; ctx.fillRect(barX, currentBarY, healthBarWidth, healthBarHeight); // Background (red)
+                 if (healthPercent > 0) { ctx.fillStyle = "#5cb85c"; ctx.fillRect(barX, currentBarY, healthBarWidth * healthPercent, healthBarHeight); } // Fill (green)
+                 ctx.strokeStyle = "rgba(0,0,0,0.5)"; ctx.lineWidth = 0.5; ctx.strokeRect(barX, currentBarY, healthBarWidth, healthBarHeight); // Border
+             });
+        }
+        function drawTowers() {
+             towers.forEach(tower => {
+                  // Determine if range should be shown (selected or hovered without preview active)
+                  const showRange = selectedTowerForManagement === tower || (!towerPreview && isMouseOverTower(tower));
+                  const towerRadius = tower.size / 2;
+                  ctx.save();
+
+                  // Apply placement animation effect (scaling and fade-in)
+                  if (tower.placementEffectTimer > 0) {
+                      let scaleProgress = 1 - (tower.placementEffectTimer / PLACEMENT_EFFECT_DURATION);
+                      let scale = 1 + (1 - scaleProgress) * 0.2; // Scale from 1.2 down to 1
+                      ctx.translate(tower.x, tower.y);
+                      ctx.scale(scale, scale);
+                      ctx.translate(-tower.x, -tower.y);
+                      ctx.globalAlpha = Math.min(1, scaleProgress * 2); // Fade in
+                  }
+
+                  // Draw range circle if needed
+                  if (showRange) {
+                      ctx.save(); ctx.globalAlpha *= 0.5; // Make range semi-transparent
+                      // Main attack range
+                      ctx.beginPath(); ctx.arc(tower.x, tower.y, tower.range, 0, Math.PI * 2); ctx.fillStyle = "rgba(255,255,255,0.05)"; ctx.fill(); ctx.strokeStyle = "rgba(255,255,255,0.15)"; ctx.lineWidth = 1; ctx.setLineDash([4, 4]); ctx.stroke(); ctx.setLineDash([]);
+                      // Freeze aura range (if applicable)
+                      if (tower.freezeAuraRadius > 0) { ctx.beginPath(); ctx.arc(tower.x, tower.y, tower.freezeAuraRadius, 0, Math.PI * 2); ctx.strokeStyle = "rgba(0, 200, 255, 0.2)"; ctx.setLineDash([6, 6]); ctx.stroke(); ctx.setLineDash([]); }
+                      ctx.restore();
+                  }
+
+                  // Draw tower base
+                  ctx.beginPath(); ctx.arc(tower.x, tower.y, towerRadius, 0, Math.PI * 2);
+                  // Apply gradient fill
+                  const gradient = ctx.createRadialGradient( tower.x - towerRadius * 0.3, tower.y - towerRadius * 0.3, towerRadius * 0.1, tower.x, tower.y, towerRadius ); gradient.addColorStop(0, lightenColor(tower.color, 30)); gradient.addColorStop(1, tower.color); ctx.fillStyle = gradient; ctx.fill();
+                  // Apply border (thicker/white if selected)
+                  ctx.lineWidth = selectedTowerForManagement === tower ? 3 : 2; ctx.strokeStyle = selectedTowerForManagement === tower ? "#fff" : "rgba(0,0,0,0.6)"; ctx.stroke();
+
+                  // Draw tower barrel (rotated towards target or default angle)
+                  ctx.save(); ctx.translate(tower.x, tower.y); let angle = 0; if (tower.target) { angle = Math.atan2(tower.target.y - tower.y, tower.target.x - tower.x); } ctx.rotate(angle); ctx.fillStyle = "rgba(0,0,0,0.5)"; ctx.fillRect(towerRadius * 0.5, -2, towerRadius * 0.6, 4); ctx.restore(); // Barrel shape
+
+                  // Draw tower level text
+                  ctx.fillStyle = "rgba(255, 255, 255, 0.9)"; ctx.font = "bold 11px 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif"; ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.shadowColor = 'black'; ctx.shadowBlur = 3; ctx.fillText(tower.level, tower.x, tower.y); ctx.shadowBlur = 0;
+
+                  // Draw firing animation effect (pulse)
+                  if (tower.firingEffectTimer > 0) { let scale = 1 + Math.sin((FIRING_EFFECT_DURATION - tower.firingEffectTimer) / FIRING_EFFECT_DURATION * Math.PI) * 0.1; ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.translate(tower.x, tower.y); ctx.scale(scale, scale); ctx.translate(-tower.x, -tower.y); ctx.fillStyle = tower.bulletColor; ctx.globalAlpha = tower.firingEffectTimer / FIRING_EFFECT_DURATION * 0.7; ctx.beginPath(); ctx.arc(tower.x, tower.y, towerRadius * 1.1, 0, Math.PI * 2); ctx.fill(); ctx.restore(); }
+
+                  ctx.restore(); // Restore main tower context
+              });
+         }
+        function drawBullets() {
+             bullets.forEach(bullet => {
+                 ctx.save(); ctx.shadowColor = bullet.color; ctx.shadowBlur = bullet.isFreezeBullet ? 8 : 4; // More glow for freeze
+                 ctx.beginPath(); ctx.arc(bullet.x, bullet.y, bullet.size, 0, Math.PI * 2); ctx.fillStyle = bullet.color; ctx.fill();
+                 ctx.restore();
+             });
+        }
+        function drawParticles() {
+            ctx.save();
+            particles.forEach(p => {
+                // Skip drawing if particle type is toggled off
+                if (p.type === 'damage_number' && !showDamageNumbers) return;
+                if ((p.type === 'explosion' || p.type === 'muzzle_flash' || p.type === 'splash_ring' || p.type === 'heal_pulse' || p.type === 'placement_fail') && !showParticles) return; // Check cosmetic particles
+
+                ctx.globalAlpha = p.alpha !== undefined ? p.alpha : 1; // Apply fade alpha
+                ctx.fillStyle = p.color; ctx.strokeStyle = p.color;
+
+                // Draw based on particle type
+                if (p.type === 'damage_number') {
+                    ctx.font = "bold 12px 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif"; ctx.textAlign = "center";
+                    ctx.shadowColor = 'black'; ctx.shadowBlur = 2; ctx.fillText(p.text, p.x, p.y); ctx.shadowBlur = 0;
+                } else if (p.type === 'splash_ring') { // Expanding ring
+                    ctx.beginPath(); ctx.arc(p.x, p.y, p.radius + (p.maxRadius - p.radius) * (1 - p.lifetime / p.initialLifetime), 0, Math.PI * 2);
+                    ctx.lineWidth = 2; ctx.stroke();
+                } else { // Default: draw filled circle (explosion, muzzle flash, heal, fail)
+                    ctx.beginPath(); ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2); ctx.fill();
+                }
+            });
+            ctx.restore();
+        }
+        function drawGameEffects() {
+            // Draw screen flashes, placement rings etc.
+            ctx.save();
+            gameEffects.forEach(effect => {
+                ctx.globalAlpha = Math.max(0, effect.lifetime / (effect.initialLifetime || 1)); // Fade effect
+                if (effect.type === 'placement_ring') { // Draw expanding ring
+                    ctx.strokeStyle = effect.color; ctx.lineWidth = 3; ctx.beginPath();
+                    // Calculate current radius based on lifetime
+                    const currentRadius = effect.maxRadius - (effect.maxRadius - effect.radius) * (effect.lifetime / effect.initialLifetime);
+                    ctx.arc(effect.x, effect.y, currentRadius, 0, Math.PI * 2); ctx.stroke();
+                } else if (effect.type === 'screen_flash') { // Draw screen overlay
+                    ctx.fillStyle = effect.color; ctx.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
+                }
+            });
+            ctx.restore();
+        }
+        function drawTowerPreview() {
+             if (!towerPreview || !towerTypes[towerPreview.type]) return; const typeData = towerTypes[towerPreview.type];
+             ctx.save(); ctx.globalAlpha = 0.6; // Make preview semi-transparent
+
+             // Draw range preview (green if valid, red if invalid)
+             ctx.beginPath(); ctx.arc(towerPreview.x, towerPreview.y, typeData.range, 0, Math.PI * 2);
+             ctx.fillStyle = towerPreview.valid ? "rgba(0,255,0,0.05)" : "rgba(255,0,0,0.1)"; ctx.fill();
+             ctx.strokeStyle = towerPreview.valid ? "rgba(0,255,0,0.3)" : "rgba(255,0,0,0.4)";
+             ctx.lineWidth = 2; ctx.setLineDash([5,5]); ctx.stroke(); ctx.setLineDash([]);
+
+             // Draw tower base preview
+             ctx.beginPath(); ctx.arc(towerPreview.x, towerPreview.y, TOWER_SIZE / 2, 0, Math.PI * 2);
+             ctx.fillStyle = typeData.color; ctx.fill();
+             ctx.lineWidth = 2; ctx.strokeStyle = towerPreview.valid ? "rgba(0,255,0,0.7)" : "rgba(255,0,0,0.7)"; ctx.stroke();
+
+             ctx.restore();
+         }
+
+        // ---------------------------
+        // UI Update Functions
+        // ---------------------------
+         function updateUI() {
+             if (!healthCounterText || !goldCounterText || !waveCounterText || !scoreCounterText || !highscoreCounterText || !killStreakCounterText || !bombTextElement || !bombProgressElement || !healthCounterDiv || !towerButtons) {
+                 console.error("Cannot update UI - one or more elements missing.");
+                 return;
+             }
+
+             // Update text displays
+             healthCounterText.textContent = `Health: ${health}`;
+             goldCounterText.textContent = `Gold: ${gold}`;
+             scoreCounterText.textContent = `Score: ${score}`;
+             waveCounterText.textContent = `Wave: ${currentWave}/${totalWaves}`;
+             highscoreCounterText.textContent = `High Score: ${highScore}`;
+
+             // Update low health class based on percentage of MAX health
+             if (maxHealth && health <= maxHealth * LOW_HEALTH_THRESHOLD_PERCENT && health > 0) {
+                 healthCounterDiv.classList.add('low-health');
+             } else {
+                 healthCounterDiv.classList.remove('low-health');
+             }
+
+             // Update tower button disabled/selected state
+             towerButtons.forEach(button => {
+                 const typeKey = button.getAttribute("data-tower");
+                 const cost = towerTypes[typeKey] ? towerTypes[typeKey].cost : Infinity;
+                 // Disable button if player can't afford the tower
+                 if (gold < cost) {
+                     button.classList.add('disabled');
+                 } else {
+                     button.classList.remove('disabled');
+                 }
+                 // Sync selected visual state with actual selection
+                 button.classList.toggle('selected', selectedTowerType === typeKey);
+             });
+
+             // Update bomb button state and progress bar
+             if (bombMeter >= 100) {
+                 bombButton.disabled = false; bombButton.classList.add('ready');
+                 bombTextElement.textContent = "💣 Bomb Ready!";
+                 bombProgressElement.style.width = "100%";
+             } else {
+                 bombButton.disabled = true; bombButton.classList.remove('ready');
+                 bombTextElement.textContent = `💣 Bomb: ${Math.floor(bombMeter)}%`;
+                 bombProgressElement.style.width = bombMeter + "%";
+             }
+
+             // Update kill streak display style
+             killStreakCounterDiv.classList.toggle('active-streak', killStreakCounter > 0);
+             killStreakCounterText.textContent = `Streak: ${killStreakCounter}`;
+
+
+             // Update the upgrade button state (important if gold changed)
+             updateUpgradeButtonState();
+         }
+
+         function triggerValueChangedAnimation(element) {
+              if (!element) return;
+              element.classList.remove('value-changed'); // Remove class first
+              void element.offsetWidth; // Trigger reflow to restart animation if needed
+              element.classList.add('value-changed'); // Add class to trigger animation
+              // Remove class after animation duration (optional, CSS handles fade out)
+              // setTimeout(() => { element.classList.remove('value-changed'); }, VALUE_CHANGE_ANIM_DURATION);
+         }
+         function updateHighScoreUI() {
+              if(highscoreCounterText) highscoreCounterText.textContent = `High Score: ${highScore}`;
+         }
+         function updateHighScore() {
+              if (score > highScore) {
+                  highScore = score;
+                  try {
+                    localStorage.setItem("waveDefenseHighScore", highScore);
+                  } catch(e) {
+                    console.warn("Could not save high score to localStorage", e);
+                  }
+                  updateHighScoreUI(); // Update display immediately
+              }
+         }
+
+        // ---------------------------
+        // Mouse Event Handlers
+        // ---------------------------
+         function handleMouseMove(e) {
+             if (!canvas || !scaleFactor) return;
+             const rect = canvas.getBoundingClientRect();
+             const mouseX = e.clientX - rect.left;
+             const mouseY = e.clientY - rect.top;
+
+             // Store both logical and client coordinates
+             currentMouseX = mouseX / scaleFactor;
+             currentMouseY = mouseY / scaleFactor;
+             currentClientX = e.clientX; // Store raw client X (used for UI like tooltip)
+             currentClientY = e.clientY; // Store raw client Y (used for UI like tooltip)
+
+             // Update tower preview position and validity if active
+             if (towerPreview) {
+                 towerPreview.x = currentMouseX;
+                 towerPreview.y = currentMouseY;
+                 towerPreview.valid = isTowerPositionValid(currentMouseX, currentMouseY);
+             }
+             // Tooltip position updated by gameContainer's mousemove listener
+         }
+
+         function handleMouseClick(e) {
+             if (!canvas || !scaleFactor) return; // Ensure canvas and scale factor are available
+             const rect = canvas.getBoundingClientRect();
+             const mouseX = e.clientX - rect.left;
+             const mouseY = e.clientY - rect.top;
+             const clickX = mouseX / scaleFactor; // Calculate logical click coordinates
+             const clickY = mouseY / scaleFactor;
+
+             // --- Action 1: Attempt Tower Placement ---
+             if (selectedTowerType && towerPreview) {
+                 if (towerPreview.valid) { // Check if the preview location is valid
+                     // Try to place the tower, placeTower handles gold deduction & sound
+                     if (placeTower(clickX, clickY, selectedTowerType)) {
+                         // SUCCESS: Deselect the tower type from the button and remove preview
+                         towerButtons.forEach(btn => { if (btn.getAttribute('data-tower') === selectedTowerType) btn.classList.remove('selected'); });
+                         selectedTowerType = null;
+                         towerPreview = null;
+                         // updateUI() is called within placeTower
+                     } else {
+                         // Placement failed (e.g., gold check failed - unlikely if button was enabled, but check anyway)
+                         // Sound is played within placeTower on failure
+                     }
+                 } else {
+                     // Invalid location: Play error sound, DO NOT deselect preview
+                     playSound('error', 0.2);
+                 }
+                 return; // Stop processing click after placement attempt (success or fail)
+             }
+
+             // --- Action 2: Select/Deselect Existing Tower for Management ---
+             // (Only runs if NOT trying to place a tower)
+             let clickedTower = null;
+             // Check if the click hit an existing tower
+             for (let tower of towers) {
+                 if (getDistance(clickX, clickY, tower.x, tower.y) < tower.size / 2) {
+                     clickedTower = tower;
+                     break;
+                 }
+             }
+
+             if (clickedTower) {
+                 // Clicking an existing tower should ALWAYS cancel placement mode
+                 if (selectedTowerType) {
+                     towerButtons.forEach(btn => { if (btn.getAttribute('data-tower') === selectedTowerType) btn.classList.remove('selected'); });
+                     selectedTowerType = null;
+                     towerPreview = null;
+                     playSound('cancel_placement'); // Use a cancel sound
+                     updateUI(); // Update tower button states
+                 }
+
+                 // Now handle the management panel toggle
+                 if (selectedTowerForManagement === clickedTower) { // Clicked the already managed tower -> Deselect
+                     selectedTowerForManagement = null;
+                     hideTowerManagementContainer();
+                     playSound('ui_click', 0.05);
+                 } else { // Clicked a different (or no) tower -> Select this one
+                     selectedTowerForManagement = clickedTower;
+                     showTowerManagementContainer(clickedTower); // Position calculated inside
+                     playSound('ui_click', 0.05);
+                 }
+                 return; // Stop processing click
+             }
+
+             // --- Action 3: Clicked Empty Space ---
+             // If management panel was open, close it
+             if (selectedTowerForManagement) {
+                 selectedTowerForManagement = null;
+                 hideTowerManagementContainer();
+                 playSound('ui_click', 0.05);
+                 return; // Stop processing click
+             }
+
+             // Note: Clicking empty space while in placement mode does nothing here (handled by Action 1)
+         }
+
+         function handleContextMenu(e) {
+             e.preventDefault(); // Prevent browser default right-click menu
+
+             // If currently placing a tower, cancel it
+             if (selectedTowerType) {
+                 playSound('cancel_placement'); // Play cancel sound
+                 // Deselect the button visually
+                 towerButtons.forEach(btn => { if (btn.getAttribute('data-tower') === selectedTowerType) btn.classList.remove('selected'); });
+                 // Clear selection state
+                 selectedTowerType = null;
+                 towerPreview = null;
+                 updateUI(); // Update tower button states (ensure they are clickable again if affordable)
+             }
+             // If management panel is open, close it on right click as well? (Optional)
+             // else if (selectedTowerForManagement) {
+             //     selectedTowerForManagement = null;
+             //     hideTowerManagementContainer();
+             //     playSound('cancel_placement'); // Or a different sound
+             // }
+         }
+
+
+         function isMouseOverTower(tower) {
+             // Don't show hover range if another tower is selected for management
+             if (selectedTowerForManagement && selectedTowerForManagement !== tower) return false;
+             // Check distance from current logical mouse coordinates to tower center
+             return getDistance(currentMouseX, currentMouseY, tower.x, tower.y) < tower.size / 2;
+         }
+
+         // --- Custom Tooltip Handlers ---
+         function handleTooltipMouseOver(e) {
+             if (!customTooltip) return;
+             // Find the target element with data-tooltip, searching up the DOM tree
+             let targetElement = e.target;
+             let tooltipText = null;
+             while (targetElement && targetElement !== gameContainer) {
+                 tooltipText = targetElement.getAttribute('data-tooltip');
+                 if (tooltipText) break; // Found tooltip text
+                 targetElement = targetElement.parentElement; // Move up the tree
+             }
+
+             if (tooltipText) {
+                 customTooltip.innerHTML = tooltipText; // Set text
+                 positionTooltip(e); // Calculate initial position
+                 customTooltip.classList.add('visible'); // Make visible
+             } else {
+                 customTooltip.classList.remove('visible'); // Hide if no tooltip found on target or parents
+             }
+         }
+
+         function handleTooltipMouseMove(e) {
+             // Update position only if the tooltip is currently visible
+             if (!customTooltip || !customTooltip.classList.contains('visible')) return;
+             positionTooltip(e); // Update position as mouse moves
+         }
+
+         function handleTooltipMouseOut(e) {
+             if (!customTooltip) return;
+             // Hide tooltip when mouse leaves the element that triggered it (or its parents)
+             // A simple hide is usually sufficient here
+             customTooltip.classList.remove('visible');
+         }
+
+         function positionTooltip(e) {
+            // Positions the custom tooltip relative to the mouse cursor, clamped within the game container.
+             if (!customTooltip || !gameContainer) return;
+
+             const containerRect = gameContainer.getBoundingClientRect();
+             const tooltipRect = customTooltip.getBoundingClientRect(); // Get its current dimensions
+
+             // Calculate desired position relative to the viewport cursor
+             let x = e.clientX + TOOLTIP_OFFSET_X;
+             let y = e.clientY + TOOLTIP_OFFSET_Y;
+
+             // Clamp position to stay within the game container bounds
+             // Adjust x if tooltip goes beyond the right edge
+             if (x + tooltipRect.width > containerRect.right) {
+                 x = e.clientX - tooltipRect.width - TOOLTIP_OFFSET_X; // Flip to left of cursor
+             }
+             // Adjust x if tooltip goes beyond the left edge (can happen if flipped)
+             if (x < containerRect.left) {
+                 x = containerRect.left + 5; // Add small buffer from edge
+             }
+
+             // Adjust y if tooltip goes below the bottom edge
+             if (y + tooltipRect.height > containerRect.bottom) {
+                 y = e.clientY - tooltipRect.height - TOOLTIP_OFFSET_Y; // Flip above cursor
+             }
+             // Adjust y if tooltip goes above the top edge
+             if (y < containerRect.top) {
+                 y = containerRect.top + 5; // Add small buffer from edge
+             }
+
+             // Apply the final position using fixed positioning
+             customTooltip.style.left = `${x}px`;
+             customTooltip.style.top = `${y}px`;
+         }
+
+
+        // ---------------------------
+        // Tower Management UI & Logic
+        // ---------------------------
+         function updateUpgradeButtonState() {
+             // Only proceed if the management panel is visible and a tower is selected
+             if (!towerManagementContainer || !towerManagementContainer.classList.contains("visible") || !selectedTowerForManagement || !upgradeButton) {
+                 if (upgradeButton) upgradeButton.disabled = true; // Ensure disabled if panel not focused
+                 return;
+             }
+
+             const tower = selectedTowerForManagement;
+             const typeData = towerTypes[tower.type];
+             // Check if tower exists, is max level, or has upgrade data
+             if (!typeData || tower.level >= tower.maxLevel || !typeData.upgrades || tower.level > typeData.upgrades.length) {
+                 if (upgradeButton) upgradeButton.disabled = true;
+                 return;
+             }
+
+             // Get upgrade cost for the *next* level
+             const upgradeData = typeData.upgrades[tower.level - 1]; // Array is 0-indexed
+             if (!upgradeData || typeof upgradeData.cost === 'undefined') {
+                 if (upgradeButton) upgradeButton.disabled = true; // Missing data
+                 return;
+             }
+
+             const upgradeCost = upgradeData.cost;
+             // Enable/disable based on whether player can afford the upgrade
+             upgradeButton.disabled = (gold < upgradeCost);
+         }
+
+         // *** MODIFIED: Tower Panel Positioning Logic ***
+         function showTowerManagementContainer(tower) {
+             if (!towerManagementContainer || !towerInfoP || !upgradeInfoP || !upgradeButton || !sellButton || !gameContainer || !scaleFactor) return;
+             const typeData = towerTypes[tower.type]; if (!typeData) return;
+
+             // 1. Update Content (same as before)
+             let statsText = `<strong>${typeData.name || tower.type} (Lvl ${tower.level})</strong><br> DMG: ${tower.damage.toFixed(1)}, Range: ${tower.range}, Rate: ${tower.fireRate.toFixed(2)}/s`;
+             if (tower.splashRadius > 0) statsText += `, Splash: ${tower.splashRadius.toFixed(0)}`; if (tower.pierceCount > 0) statsText += `, Pierce: ${tower.pierceCount}`; if (tower.numTargets > 1) statsText += `, Targets: ${tower.numTargets}`; if (tower.slowAmount > 0) statsText += `, Slow: ${Math.round(tower.slowAmount*100)}%`; if (tower.stunChance > 0) statsText += `, Stun: ${Math.round(tower.stunChance*100)}%`;
+             towerInfoP.innerHTML = statsText;
+
+             if (tower.level < tower.maxLevel) {
+                 const upgradeData = typeData.upgrades[tower.level - 1];
+                 if (upgradeData) {
+                     const upgradeCost = upgradeData.cost;
+                     upgradeInfoP.innerHTML = `<em>Upgrade: ${upgradeData.description || 'Stats+'}</em>`;
+                     upgradeButton.textContent = `Upgrade (${upgradeCost}g)`;
+                     upgradeButton.style.display = 'block'; // Ensure visible
+                 } else {
+                     upgradeInfoP.textContent = "Error: Upgrade data missing";
+                     upgradeButton.style.display = 'none';
+                 }
+             } else {
+                 upgradeInfoP.textContent = "Max Level Reached";
+                 upgradeButton.style.display = 'none'; // Hide upgrade button at max level
+             }
+
+             let sellValue = Math.floor(tower.investedCost * SELL_REFUND_PERCENTAGE);
+             sellButton.textContent = `Sell (+${sellValue}g)`;
+             sellButton.disabled = false; // Sell button is always enabled when panel is shown
+             sellButton.style.display = 'block'; // Ensure visible
+
+             // 2. Calculate Position *** NEW LOGIC ***
+             const containerRect = gameContainer.getBoundingClientRect(); // Get container dimensions relative to viewport
+             // Force reflow to get accurate dimensions if panel was hidden
+             towerManagementContainer.style.visibility = 'hidden'; // Temporarily make it non-visible but layout-affecting
+             towerManagementContainer.style.display = 'block'; // Ensure it takes up space
+             const panelWidth = towerManagementContainer.offsetWidth;
+             const panelHeight = towerManagementContainer.offsetHeight;
+             towerManagementContainer.style.display = ''; // Reset display property
+             towerManagementContainer.style.visibility = ''; // Reset visibility
+
+             // Convert tower's logical canvas coordinates to scaled coordinates relative to the container's top-left
+             const towerScaledX = tower.x * scaleFactor;
+             const towerScaledY = tower.y * scaleFactor;
+             const towerScaledSize = tower.size * scaleFactor;
+
+             // Target position: Centered horizontally, TOWER_PANEL_SPACING pixels above the tower's visual top edge
+             let desiredLeft = towerScaledX - (panelWidth / 2);
+             let desiredTop = towerScaledY - (towerScaledSize / 2) - panelHeight - TOWER_PANEL_SPACING;
+
+             // Clamp position to stay within the game container visually
+             const finalLeft = Math.max(0, Math.min(containerRect.width - panelWidth, desiredLeft));
+             const finalTop = Math.max(0, Math.min(containerRect.height - panelHeight, desiredTop));
+
+             // 3. Apply Position & Make Visible
+             towerManagementContainer.style.left = `${finalLeft}px`;
+             towerManagementContainer.style.top = `${finalTop}px`;
+             towerManagementContainer.classList.add("visible");
+
+             // 4. Set initial upgrade button state AFTER panel is positioned and visible
+             updateUpgradeButtonState();
+         }
+
+         function hideTowerManagementContainer() {
+             if(towerManagementContainer) {
+                 towerManagementContainer.classList.remove("visible");
+                 // Clear potentially set inline styles (optional, but good practice if layout changes)
+                 // towerManagementContainer.style.left = '';
+                 // towerManagementContainer.style.top = '';
+                 selectedTowerForManagement = null; // Ensure tower is deselected
+             }
+         }
+
+         function upgradeSelectedTower() {
+              if (!selectedTowerForManagement) return;
+              const tower = selectedTowerForManagement; const typeData = towerTypes[tower.type];
+              if (!typeData || tower.level >= tower.maxLevel) return;
+
+              const upgradeData = typeData.upgrades[tower.level - 1]; if (!upgradeData) return;
+              const upgradeCost = upgradeData.cost;
+
+              if (gold >= upgradeCost) {
+                  let goldBefore = gold;
+                  playSound('upgrade'); // Play sound on successful upgrade
+                  gold -= upgradeCost;
+                  tower.level++;
+                  tower.investedCost += upgradeCost; // Add upgrade cost to total investment for sell value
+
+                  // Apply all properties from the upgrade data (except cost/description)
+                  Object.keys(upgradeData).forEach(key => {
+                      // Check if the key exists on the tower object itself (not inherited)
+                      // and isn't 'cost' or 'description'
+                      if (key !== 'cost' && key !== 'description' && Object.prototype.hasOwnProperty.call(tower, key)) {
+                          tower[key] = upgradeData[key];
+                      } else if (key !== 'cost' && key !== 'description') {
+                          // Log if trying to apply a property that doesn't exist on the base tower object
+                          // console.warn(`Upgrade property "${key}" not found on tower object.`);
+                          // Optionally add it if needed, but usually indicates base tower object needs the property initialized.
+                          // tower[key] = upgradeData[key];
+                      }
+                  });
+
+                  // Trigger gold animation if gold decreased
+                  if(gold < goldBefore) {
+                      triggerValueChangedAnimation(goldCounterDiv);
+                  }
+
+                  // Refresh the panel content and position (position might not change, but content does)
+                  showTowerManagementContainer(tower);
+                  updateUI(); // Update main gold display and potentially tower button states
+              } else {
+                  playSound('error', 0.2); // Play error sound if not enough gold
+              }
+          }
+
+         function sellSelectedTower() {
+              if (!selectedTowerForManagement) return;
+              const tower = selectedTowerForManagement;
+              let sellValue = Math.floor(tower.investedCost * SELL_REFUND_PERCENTAGE);
+
+              let goldBefore = gold;
+              gold += sellValue;
+              if (gold > goldBefore) { // Animate only if gold actually increased
+                  triggerValueChangedAnimation(goldCounterDiv);
+                  updateUpgradeButtonState(); // Check upgrades, selling might enable one
+              }
+              playSound('sell'); // Play sell sound
+              createExplosion(tower.x, tower.y, 'gold', tower.size * 1.2); // Use explosion for visual feedback
+
+              // Remove tower from the array
+              const index = towers.indexOf(tower);
+              if (index > -1) towers.splice(index, 1);
+
+              // Deselect tower and hide panel
+              selectedTowerForManagement = null;
+              hideTowerManagementContainer();
+              updateUI(); // Update gold display and tower button states
+          }
+
+        // ---------------------------
+        // Restart Game Function
+        // ---------------------------
+         function restartGame() {
+             // Stop any pending enemy spawns
+             if (spawnTimeoutId) {
+                 clearTimeout(spawnTimeoutId);
+                 spawnTimeoutId = null;
+             }
+
+             // Reset core game state variables
+             currentWave = 0; score = 0; bombMeter = 0;
+             enemies = []; towers = []; bullets = []; particles = []; gameEffects = [];
+             gameOver = false; gameWon = false; waveActive = false;
+             waveEnemiesRemaining = 0; enemiesKilledThisWave = 0;
+             selectedTowerType = null; towerPreview = null; selectedTowerForManagement = null;
+             killStreakCounter = 0; lastKillTime = 0;
+             paused = false; // Ensure game is not paused
+             pausedBySettingsMenu = false;
+             waypoints = paths[0]; // Reset to first path
+             nextPathIndexToShow = 0; // Show path indicator for wave 1 path
+             gameSpeed = 1; // Reset game speed to normal
+
+             // Apply difficulty settings to reset starting health/gold
+             applyDifficultySettings();
+
+             // Reset UI elements to initial state
+             if(gameOverScreen) gameOverScreen.classList.remove("visible");
+             if(victoryScreen) victoryScreen.classList.remove("visible");
+             if(settingsMenu) settingsMenu.classList.remove("visible"); // Close settings if open
+             if(pauseButton) pauseButton.disabled = false; // Re-enable pause button
+
+             // --- Reset Start/Next Wave Buttons ---
+             if(startButton) {
+                 startButton.disabled = false;
+                 startButton.textContent = "▶ Start Wave";
+                 startButton.classList.remove('hidden'); // Show Start button
+             }
+             if(pauseButton) { pauseButton.textContent = "|| Pause"; }
+             if(nextWaveButton) {
+                 nextWaveButton.classList.add('hidden'); // Hide Next Wave button
+             }
+             // --- End Button Reset ---
+
+             hideTowerManagementContainer(); // Hide tower panel if open
+             if(interestInfoText) interestInfoText.textContent = "";
+             if(waveInfo) waveInfo.classList.remove('visible');
+             if(healthCounterDiv) healthCounterDiv.classList.remove('low-health'); // Handled by applyDifficulty, but ensure here
+             if(killStreakCounterDiv) killStreakCounterDiv.classList.remove('active-streak');
+             if(towerButtons) towerButtons.forEach(btn => { btn.classList.remove('selected'); btn.classList.remove('disabled'); });
+
+             // Reset speed control buttons to 1x
+             if(speedControlButtons) {
+                 speedControlButtons.forEach(btn => btn.classList.remove("active"));
+                 const defaultSpeedButton = document.querySelector('#speed-control button[data-speed="1"]');
+                 if (defaultSpeedButton) defaultSpeedButton.classList.add("active");
+             }
+
+             updateHighScoreUI(); // Make sure high score is displayed correctly
+             updateUI(); // Update all UI elements based on reset state
+
+             lastTimestamp = performance.now(); // Reset timestamp for game loop timing
+         }
+
+        // ---------------------------
+        // Helper Functions
+        // ---------------------------
+         function getDistance(x1, y1, x2, y2) {
+             const dx = x2 - x1; const dy = y2 - y1; return Math.sqrt(dx * dx + dy * dy);
+         }
+         function lightenColor(hex, percent) {
+             hex = hex.replace(/^\s*#|\s*$/g, ''); if (hex.length == 3) { hex = hex.replace(/(.)/g, '$1$1'); }
+             let r = parseInt(hex.substr(0, 2), 16), g = parseInt(hex.substr(2, 2), 16), b = parseInt(hex.substr(4, 2), 16);
+             percent = percent || 0;
+             r = Math.min(255, Math.floor(r * (1 + percent / 100))); g = Math.min(255, Math.floor(g * (1 + percent / 100))); b = Math.min(255, Math.floor(b * (1 + percent / 100)));
+             const rHex = r.toString(16).padStart(2, '0'); const gHex = g.toString(16).padStart(2, '0'); const bHex = b.toString(16).padStart(2, '0');
+             return '#' + rHex + gHex + bHex;
+         }
+
+        // ---------------------------
+        // Initialization Call
+        // ---------------------------
+        document.addEventListener('DOMContentLoaded', init);
+
+    </script>
+</body>
+</html>
