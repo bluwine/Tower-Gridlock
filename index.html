@@ -251,7 +251,7 @@
             cursor: default;
             opacity: 0.6;
             transform: none;
-            box-shadow: 0 1px 2px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+            box-shadow: 0 1px 2px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.05);
         }
 
         /* Specific Button Colors */
@@ -766,7 +766,8 @@
             padding: 8px 12px;
             border-radius: 4px;
             font-size: 12px;
-            white-space: nowrap;
+            white-space: normal; /* Allow text wrapping */
+            max-width: 250px;    /* Max width for better readability */
             z-index: 9999; /* Ensure it's on top */
             opacity: 0;
             visibility: hidden;
@@ -941,16 +942,18 @@
                     <button id="close-settings-button" class="control-button" data-tooltip="Close the settings menu">Close</button>
                 </div>
             </div>
-            <div id="social-links-container">
+        </div>
+
+        <div id="social-links-container">
             <a href="https://github.com/bluwine/Tower-Gridlock" target="_blank" rel="noopener noreferrer" title="View Project on GitHub" data-tooltip="Project GitHub Repository">
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" class="social-icon">
                     <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8"/>
                 </svg>
             </a>
         </div>
-        </div> <div id="custom-tooltip"></div>
-        </div>
-        </div> <div id="custom-tooltip"></div>
+        <div id="custom-tooltip"></div>
+    </div>
+
 
     <script>
         // ---------------------------
@@ -1006,8 +1009,8 @@
         let gold; // Will be set by difficulty
         let currentWave = 0;
         const wavesPerPath = 5;
-        const totalPaths = 5;
-        const totalWaves = 25;
+        const totalPaths = 5; // Corresponds to paths.length
+        const totalWaves = 25; // Should be waveCompositions.length
         let enemies = [];
         let towers = [];
         let bullets = [];
@@ -1039,10 +1042,10 @@
         // Tower Types & Upgrades
         // ---------------------------
          const towerTypes = {
-             basic: { name: "Basic", color: "#3498db", range: 100, damage: 1, fireRate: 1, cost: 50, bulletColor: "#6cacde", maxLevel: 3, targetsFlying: true, canTargetGround: true, upgrades: [ { cost: 75, damage: 2, range: 110, fireRate: 1.1, description: "+DMG, +Range, +Rate" }, { cost: 120, damage: 3, range: 120, fireRate: 1.2, splashRadius: 15, description: "+DMG, +Range, +Rate, GAIN SPLASH" } ] },
-             sniper: { name: "Sniper", color: "#9b59b6", range: 200, damage: 3, fireRate: 0.5, cost: 100, bulletColor: "#c38cd1", maxLevel: 3, targetsFlying: true, canTargetGround: true, upgrades: [ { cost: 150, damage: 5, range: 220, fireRate: 0.6, description: "+DMG, +Range, +Rate" }, { cost: 250, damage: 7, range: 240, fireRate: 0.7, pierceCount: 1, description: "+DMG, +Range, +Rate, GAIN PIERCE" } ] },
-             cannon: { name: "Cannon", color: "#e74c3c", range: 120, damage: 2, fireRate: 0.7, cost: 150, bulletColor: "#ee7f73", maxLevel: 3, numTargets: 3, targetsFlying: true, canTargetGround: true, upgrades: [ { cost: 200, damage: 3, range: 130, fireRate: 0.8, numTargets: 4, description: "+DMG, +Range, +Rate, +Target" }, { cost: 300, damage: 4, range: 140, fireRate: 0.9, numTargets: 5, stunChance: 0.1, stunDuration: 0.5, description: "+DMG, +Range, +Rate, +Target, CHANCE TO STUN" } ] },
-             freeze: { name: "Freeze", color: "#1abc9c", range: 90, damage: 0.5, fireRate: 0.8, cost: 120, bulletColor: "#54dbc5", maxLevel: 3, slowDuration: 3, slowAmount: 0.5, targetsFlying: false, canTargetGround: true, upgrades: [ { cost: 180, damage: 0.7, range: 100, fireRate: 0.9, slowDuration: 3.5, slowAmount: 0.6, description: "+DMG, +Range, +Rate, STRONGER SLOW" }, { cost: 280, damage: 1.0, range: 110, fireRate: 1.0, slowDuration: 4.0, slowAmount: 0.7, freezeAuraRadius: 20, description: "+DMG, +Range, +Rate, STRONGEST SLOW, SLOW AURA" } ] }
+             basic: { name: "Basic", color: "#3498db", range: 100, damage: 1, fireRate: 1, cost: 50, bulletColor: "#6cacde", maxLevel: 3, targetsFlying: true, canTargetGround: true, splashRadius: 0, pierceCount: 0, numTargets: 1, stunChance: 0, stunDuration: 0, slowDuration: 0, slowAmount: 0, freezeAuraRadius: 0, upgrades: [ { cost: 75, damage: 2, range: 110, fireRate: 1.1, description: "+DMG, +Range, +Rate" }, { cost: 120, damage: 3, range: 120, fireRate: 1.2, splashRadius: 15, description: "+DMG, +Range, +Rate, GAIN SPLASH" } ] },
+             sniper: { name: "Sniper", color: "#9b59b6", range: 200, damage: 3, fireRate: 0.5, cost: 100, bulletColor: "#c38cd1", maxLevel: 3, targetsFlying: true, canTargetGround: true, splashRadius: 0, pierceCount: 0, numTargets: 1, stunChance: 0, stunDuration: 0, slowDuration: 0, slowAmount: 0, freezeAuraRadius: 0, upgrades: [ { cost: 150, damage: 5, range: 220, fireRate: 0.6, description: "+DMG, +Range, +Rate" }, { cost: 250, damage: 7, range: 240, fireRate: 0.7, pierceCount: 1, description: "+DMG, +Range, +Rate, GAIN PIERCE" } ] },
+             cannon: { name: "Cannon", color: "#e74c3c", range: 120, damage: 2, fireRate: 0.7, cost: 150, bulletColor: "#ee7f73", maxLevel: 3, targetsFlying: true, canTargetGround: true, splashRadius: 0, pierceCount: 0, numTargets: 3, stunChance: 0, stunDuration: 0, slowDuration: 0, slowAmount: 0, freezeAuraRadius: 0, upgrades: [ { cost: 200, damage: 3, range: 130, fireRate: 0.8, numTargets: 4, description: "+DMG, +Range, +Rate, +Target" }, { cost: 300, damage: 4, range: 140, fireRate: 0.9, numTargets: 5, stunChance: 0.1, stunDuration: 0.5, description: "+DMG, +Range, +Rate, +Target, CHANCE TO STUN" } ] },
+             freeze: { name: "Freeze", color: "#1abc9c", range: 90, damage: 0.5, fireRate: 0.8, cost: 120, bulletColor: "#54dbc5", maxLevel: 3, targetsFlying: false, canTargetGround: true, splashRadius: 0, pierceCount: 0, numTargets: 1, stunChance: 0, stunDuration: 0, slowDuration: 3, slowAmount: 0.5, freezeAuraRadius: 0, upgrades: [ { cost: 180, damage: 0.7, range: 100, fireRate: 0.9, slowDuration: 3.5, slowAmount: 0.6, description: "+DMG, +Range, +Rate, STRONGER SLOW" }, { cost: 280, damage: 1.0, range: 110, fireRate: 1.0, slowDuration: 4.0, slowAmount: 0.7, freezeAuraRadius: 20, description: "+DMG, +Range, +Rate, STRONGEST SLOW, SLOW AURA" } ] }
          };
 
         // ---------------------------
@@ -1192,12 +1195,12 @@
                      // If context is running, mark as initialized
                      if (audioCtx && audioCtx.state === 'running') {
                         isAudioContextInitialized = true;
-                        console.log("AudioContext initialized successfully.");
+                        // console.log("AudioContext initialized successfully."); // Less verbose
                      } else if (audioCtx && audioCtx.state === 'suspended') {
                          // Attempt to resume suspended context (common in browsers requiring user interaction first)
                          audioCtx.resume().then(() => {
                              isAudioContextInitialized = true;
-                             console.log("AudioContext resumed successfully.");
+                             // console.log("AudioContext resumed successfully."); // Less verbose
                          }).catch(e => {
                              console.warn("Could not resume AudioContext:", e);
                              isAudioContextInitialized = false;
@@ -1228,26 +1231,8 @@
             canvas.height = containerHeight;
 
             scaleFactor = canvas.width / GAME_WIDTH;
-
-            // Redraw immediately after resize for smoother appearance
-            // (but only if the game loop isn't already running or paused)
-            // if (!lastTimestamp || paused) {
-            //     redrawStaticElements(); // Optional: redraw static background elements if needed
-            // }
         }
 
-        // Helper to redraw elements that don't change in the main loop (if needed for resize)
-        function redrawStaticElements() {
-             if (!ctx || !scaleFactor) return;
-             ctx.save();
-             ctx.scale(scaleFactor, scaleFactor);
-             ctx.clearRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
-             // Draw non-moving elements like background gradient, maybe paths if not animated
-             // drawWaypoints(); // Example if waypoints were static
-             drawBase(); // Base is static
-             // Draw other static elements as needed
-             ctx.restore();
-        }
 
         // ---------------------------
         // Initialization
@@ -1341,8 +1326,9 @@
             // This helps ensure audio context is ready before sounds need to play
             const firstInteractionHandler = () => {
                 initAudioContext();
-                gameContainer.removeEventListener('click', firstInteractionHandler, true);
-                gameContainer.removeEventListener('keydown', firstInteractionHandler, true);
+                // Clean up listeners after first interaction to prevent multiple calls
+                gameContainer.removeEventListener('click', firstInteractionHandler, { capture: true, once: true });
+                gameContainer.removeEventListener('keydown', firstInteractionHandler, { capture: true, once: true });
             };
             gameContainer.addEventListener('click', firstInteractionHandler, { capture: true, once: true });
             gameContainer.addEventListener('keydown', firstInteractionHandler, { capture: true, once: true });
@@ -1485,9 +1471,9 @@
         // ---------------------------
         let lastTimestamp = 0;
         function gameLoop(timestamp) {
-            const deltaTime = (timestamp - lastTimestamp) || (1000 / 60);
+            const deltaTime = (timestamp - lastTimestamp) || (1000 / 60); // Handle first frame or tab visibility changes
             lastTimestamp = timestamp;
-            const adjustedDeltaTime = Math.min(deltaTime, 50); // Clamp max delta time
+            const adjustedDeltaTime = Math.min(deltaTime, 50); // Clamp max delta time to prevent large jumps
             const step = (pausedBySettingsMenu ? 0 : (adjustedDeltaTime / (1000 / 60)) * gameSpeed); // No game step if paused by settings
 
             ctx.save(); // Save the default state
@@ -1502,11 +1488,11 @@
                 updateParticles(step);
                 updateGameEffects(step);
                 checkWaveStatus();
-                updateKillStreak(timestamp);
+                updateKillStreak(timestamp); // Use raw timestamp for kill streak duration
             } else if (pausedBySettingsMenu) {
                 // Keep updating non-gameplay elements even if settings menu pauses game logic
-                updateParticles(step); // Particles might still need to fade out
-                updateGameEffects(step); // Effects might still need to fade out
+                updateParticles(0); // Pass 0 step if game logic truly frozen, or small step if they should fade
+                updateGameEffects(0);
             }
 
 
@@ -1651,17 +1637,21 @@
               // Call this during init() and restartGame()
               const diffModifiers = difficultySettings[currentDifficulty];
               if (!diffModifiers) {
-                  console.error("Invalid difficulty selected:", currentDifficulty, "Using normal.");
+                  console.error("Invalid difficulty selected:", currentDifficulty, ". Using 'normal'.");
                   currentDifficulty = 'normal';
                   // Re-check radio button if needed (though loadSettings should handle this)
                   difficultyRadios.forEach(radio => { radio.checked = (radio.value === 'normal'); });
-                  applyDifficultySettings(); // Re-run with corrected difficulty
-                  return;
+                  // It's crucial to get the correct modifiers after fixing currentDifficulty
+                  const correctedDiffModifiers = difficultySettings[currentDifficulty];
+                  maxHealth = correctedDiffModifiers.startingHealth;
+                  health = maxHealth;
+                  gold = correctedDiffModifiers.startingGold;
+              } else {
+                  maxHealth = diffModifiers.startingHealth; // Store max health based on difficulty
+                  health = maxHealth; // Start with full health for the chosen difficulty
+                  gold = diffModifiers.startingGold;
               }
 
-              maxHealth = diffModifiers.startingHealth; // Store max health based on difficulty
-              health = maxHealth; // Start with full health for the chosen difficulty
-              gold = diffModifiers.startingGold;
 
               // Update low health class immediately based on new maxHealth
               if (healthCounterDiv) {
@@ -1701,7 +1691,7 @@
               const waveConfig = waveCompositions[currentWave - 1];
               if (!waveConfig) {
                   console.error(`Wave composition for wave ${currentWave} not found! Ending game.`);
-                  gameWon = true;
+                  gameWon = true; // Or handle as error, but for now, consider it a win if all defined waves passed
                   updateHighScore();
                   updateUI();
                   return;
@@ -1729,7 +1719,7 @@
                       if (waveActive && spawnIndex < spawnQueue.length) {
                           if (spawnTimeoutId) clearTimeout(spawnTimeoutId);
                           // Reschedule using the base interval. The game loop's step=0 handles the pause.
-                          spawnTimeoutId = setTimeout(spawnNextEnemy, waveConfig.interval);
+                          spawnTimeoutId = setTimeout(spawnNextEnemy, waveConfig.interval); // Not / gameSpeed here, pause handles timing
                       }
                       return; // Exit function if paused/game over
                   }
@@ -1805,7 +1795,7 @@
 
                  // If stunned, skip movement and actions for this step
                  if (enemy.stunTimer > 0) {
-                     enemy.stunTimer -= (step / 60); // Decrease stun timer
+                     enemy.stunTimer -= (step / 60); // Decrease stun timer (seconds)
                      continue; // Skip the rest of the update for this enemy
                  }
 
@@ -1825,7 +1815,7 @@
                      });
                      if (healedSomeone) playSound('heal', 0.15); // Play sound if heal occurred
                  } else if (enemy.isHealer) {
-                     enemy.healCooldown -= (step / 60); // Decrease heal cooldown
+                     enemy.healCooldown -= (step / 60); // Decrease heal cooldown (seconds)
                  }
 
                  // Movement Logic: Determine target position
@@ -1844,8 +1834,8 @@
                  let dx = targetWaypoint.x - enemy.x;
                  let dy = targetWaypoint.y - enemy.y;
                  let distanceToTarget = Math.sqrt(dx * dx + dy * dy);
-                 // Define a threshold for reaching the target (adjust as needed)
-                 const reachThreshold = enemy.speed * step * 0.5 + 1;
+                 // Define a threshold for reaching the target
+                 const reachThreshold = Math.max(1, enemy.speed * step * 0.5); // Minimum 1 pixel, or half a step's move
 
                  // Check if enemy reached the target
                  if (distanceToTarget < reachThreshold) {
@@ -1853,11 +1843,7 @@
                          enemyReachedBase(enemy, i); continue; // Process base reach & remove enemy
                      } else { // Reached a waypoint
                          enemy.waypointIndex++; // Move to next waypoint index
-                         // Recalculate target for the remainder of this step if needed (optional, can skip for simplicity)
-                         // targetWaypoint = waypoints[enemy.waypointIndex];
-                         // dx = targetWaypoint.x - enemy.x; dy = targetWaypoint.y - enemy.y;
-                         // distanceToTarget = Math.sqrt(dx * dx + dy * dy);
-                         continue; // Continue to next loop iteration (or process remaining move in this step)
+                         continue; // Process remaining move in the next frame for simplicity
                      }
                  }
 
@@ -1917,13 +1903,13 @@
                  // Determine armor effectiveness based on damage type
                  let armorEffectiveness = 1.0; // Default effectiveness
                  if (bulletType === 'basic' || bulletType === 'freeze') armorEffectiveness = 0.5; // Less effective
-                 if (bulletType === 'bomb' || bulletType === 'cannon') armorEffectiveness = 1.5; // More effective
+                 if (bulletType === 'bomb' || bulletType === 'cannon' || bulletType === 'sniper') armorEffectiveness = 1.5; // More effective against armor
 
-                 // Calculate damage absorbed by armor
+                 // Calculate damage absorbed by armor (how much armor points are reduced)
                  damageToArmor = Math.min(enemy.armor, damageAmount * armorEffectiveness);
-                 // Calculate health damage that gets through armor
-                 damageDealt = Math.max(0, damageAmount - enemy.armor); // Damage reduced by armor value (not damageToArmor)
-                 enemy.armor -= damageToArmor; // Reduce armor
+                 // Calculate health damage that gets through armor (flat reduction by current armor value)
+                 damageDealt = Math.max(0, damageAmount - enemy.armor);
+                 enemy.armor -= damageToArmor; // Reduce armor points
 
                  // Display armor damage number (respect toggle)
                  if (showDamageNumbers && damageToArmor > 0) {
@@ -2021,18 +2007,18 @@
                  return false; // Placement failed
              }
 
-             // Create the tower object
+             // Create the tower object, initializing all potential upgradeable stats
              let tower = {
                  x: x, y: y, type: typeKey, name: typeData.name, size: TOWER_SIZE,
                  range: typeData.range, damage: typeData.damage, fireRate: typeData.fireRate,
                  fireCountdown: 0, color: typeData.color, bulletColor: typeData.bulletColor,
                  target: null, level: 1, maxLevel: typeData.maxLevel,
                  investedCost: typeData.cost, // Track total cost for selling/refunds
-                 // Initialize potential upgradeable stats
+                 // Initialize all stats that *could* be upgraded, defaulting from typeData or to 0/false
                  splashRadius: typeData.splashRadius || 0,
                  pierceCount: typeData.pierceCount || 0,
                  numTargets: typeData.numTargets || 1,
-                 stunChance: typeData.stunChance || 0, stunDuration: typeData.stunDuration || 0.5,
+                 stunChance: typeData.stunChance || 0, stunDuration: typeData.stunDuration || 0,
                  slowDuration: typeData.slowDuration || 0, slowAmount: typeData.slowAmount || 0,
                  freezeAuraRadius: typeData.freezeAuraRadius || 0,
                  // Targeting capabilities
@@ -2075,10 +2061,12 @@
 
              // 4. Check distance from the enemy path
              const pathTolerance = TOWER_SIZE / 2 + ENEMY_SIZE / 2 + 2; // Minimum distance from path edge
-             if (!waypoints || waypoints.length < 2) return true; // No path, placement is valid (shouldn't happen in normal game)
-             // Check start point
+             if (!waypoints || waypoints.length < 2) return true; // No path, placement is valid (should ensure waypoints always exist)
+
+             // Check start point (first waypoint)
              if (getDistance(x, y, waypoints[0].x, waypoints[0].y) < pathTolerance) return false;
-             // Check line segments
+
+             // Check line segments of the path
              for (let i = 0; i < waypoints.length - 1; i++) {
                  if (isPointNearLine(x, y, waypoints[i].x, waypoints[i].y, waypoints[i + 1].x, waypoints[i + 1].y, pathTolerance)) {
                      return false; // Too close to this segment
@@ -2295,9 +2283,13 @@
                          if (showParticles) {
                              particles.push({ x: enemyHit.x, y: enemyHit.y, radius: bullet.splashRadius * 0.5, maxRadius: bullet.splashRadius, color: bullet.color, lifetime: 0.3, type: 'splash_ring', initialLifetime: 0.3 });
                          }
-                         // Damage nearby ground enemies
+                         // Damage nearby ground enemies (or flying if cannon can hit flying and splash is for all)
                          enemies.forEach(otherEnemy => {
-                             if (otherEnemy !== enemyHit && !otherEnemy.isFlying && getDistance(enemyHit.x, enemyHit.y, otherEnemy.x, otherEnemy.y) < bullet.splashRadius) {
+                             // Cannon splashes can hit flying if cannon targets flying. Assume splash hits same types tower can.
+                             const towerTypeData = towerTypes[bullet.bulletType];
+                             const canSplashHit = towerTypeData && ((towerTypeData.canTargetGround && !otherEnemy.isFlying) || (towerTypeData.targetsFlying && otherEnemy.isFlying));
+
+                             if (otherEnemy !== enemyHit && canSplashHit && getDistance(enemyHit.x, enemyHit.y, otherEnemy.x, otherEnemy.y) < bullet.splashRadius) {
                                  damageEnemy(otherEnemy, bullet.damage * 0.5, bullet.bulletType); // Splash deals 50% damage
                              }
                          });
@@ -2334,15 +2326,13 @@
              // Finds the next valid target for a piercing bullet
              let bestTarget = null;
              let minDistance = Infinity;
-             // Try to find the tower that fired this bullet (needed for targeting rules)
-             // Note: This assumes bulletColor is unique enough or finds the first match.
-             const originalTower = towers.find(t => t.bulletColor === bullet.color);
+             const towerTypeData = towerTypes[bullet.bulletType]; // Use bulletType for targeting rules
 
              enemies.forEach(enemy => {
                  // Check if enemy hasn't already been pierced by this bullet and is not the current target
                  if (!bullet.piercedEnemies.includes(enemy) && enemy !== bullet.target) {
-                     // Ensure the original tower type could target this enemy type (if tower found)
-                     const canTarget = originalTower ? (originalTower.canTargetGround && !enemy.isFlying) || (originalTower.targetsFlying && enemy.isFlying) : true; // Assume can target if tower lookup fails
+                     // Ensure the original tower type could target this enemy type
+                     const canTarget = towerTypeData ? (towerTypeData.canTargetGround && !enemy.isFlying) || (towerTypeData.targetsFlying && enemy.isFlying) : true;
                      if(canTarget) {
                          let distToEnemy = getDistance(bullet.x, bullet.y, enemy.x, enemy.y);
                          // Find the closest valid target
@@ -2397,7 +2387,7 @@
                  let p = particles[i];
                  // Immediately remove particles if their type is toggled off
                  if (p.type === 'damage_number' && !showDamageNumbers) { particles.splice(i, 1); continue; }
-                 if ((p.type === 'explosion' || p.type === 'muzzle_flash' || p.type === 'splash_ring') && !showParticles) { particles.splice(i, 1); continue; }
+                 if ((p.type === 'explosion' || p.type === 'muzzle_flash' || p.type === 'splash_ring' || p.type === 'heal_pulse' || p.type === 'placement_fail') && !showParticles) { particles.splice(i, 1); continue; }
 
                  // Update position and lifetime
                  p.x += p.dx * step; p.y += p.dy * step;
@@ -2406,7 +2396,7 @@
 
                  // Specific particle type updates (gravity, friction, etc.)
                  if (p.type === 'damage_number') { p.dy += 0.02 * step; } // Add slight gravity
-                 else if (p.type === 'heal_pulse') { p.radius += 0.2 * step; p.alpha *= 0.7; } // Expand and fade faster
+                 else if (p.type === 'heal_pulse') { p.radius += 0.2 * step; p.alpha *= 0.95; } // Expand and fade (slower fade)
                  else if (p.type === 'explosion') { p.dx *= (1 - 0.02 * step); p.dy *= (1 - 0.02 * step); } // Apply drag/friction
                  else if (p.type === 'placement_fail') { p.radius += 0.5 * step; } // Expand fail indicator
                  // Muzzle flash, splash ring, etc. fade naturally with alpha calculation
@@ -2424,7 +2414,12 @@
 
                  // Update effect properties based on type (e.g., expanding radius)
                  if (effect.type === 'placement_ring') {
-                    effect.radius = effect.maxRadius - (effect.maxRadius - (TOWER_SIZE / 2)) * (effect.lifetime / effect.initialLifetime);
+                    // Ensure initialLifetime is positive to avoid division by zero or NaN
+                    if (effect.initialLifetime > 0) {
+                        effect.radius = effect.maxRadius - (effect.maxRadius - (TOWER_SIZE / 2)) * (effect.lifetime / effect.initialLifetime);
+                    } else {
+                        effect.radius = effect.maxRadius; // Or some other default if initialLifetime is 0
+                    }
                  }
 
                  if (effect.lifetime <= 0) {
@@ -2455,7 +2450,7 @@
                  }
 
                  // --- Check for Game Victory ---
-                 if (currentWave === totalWaves) {
+                 if (currentWave >= totalWaves) { // Use >= just in case currentWave could exceed totalWaves
                      gameWon = true;
                      updateHighScore();
                      startButton.disabled = true; // Ensure buttons are disabled on win
@@ -2476,10 +2471,11 @@
                  const nextPathIndex = Math.min(Math.floor(currentWave / wavesPerPath), paths.length - 1);
                  nextPathIndexToShow = nextPathIndex; // Set indicator for the *next* wave's path
 
-                 const currentPathIndex = Math.min(Math.floor((currentWave - 1) / wavesPerPath), paths.length - 1);
+                 const currentPathIndex = Math.min(Math.floor((currentWave -1) / wavesPerPath), paths.length - 1);
+
 
                  // Check if the path index actually changes (happens after waves 5, 10, 15, etc.)
-                 if (currentWave > 0 && currentWave % wavesPerPath === 0 && nextPathIndex !== currentPathIndex) {
+                 if (currentWave > 0 && currentWave % wavesPerPath === 0 && currentWave < totalWaves && nextPathIndex !== currentPathIndex) { // Ensure not final wave for path change
                      console.log(`Path changing after Wave ${currentWave}. New path index: ${nextPathIndex}`);
                      let refund = 0;
                      towers.forEach(t => { refund += Math.floor(t.investedCost * 0.5); }); // 50% refund (not difficulty modified)
@@ -2505,7 +2501,7 @@
                      nextWaveButton.classList.add('hidden'); // Hide Next Wave button
                      // --- End Button Update ---
 
-                 } else { // Path not changing
+                 } else { // Path not changing (or it's the final wave completion before victory screen)
                      // --- Update Buttons for Normal Wave End ---
                      nextWaveButton.classList.remove('hidden'); // Show Next Wave button
                      startButton.classList.add('hidden'); // Hide Start Wave button
@@ -2644,7 +2640,7 @@
                   ctx.save();
 
                   // Apply placement animation effect (scaling and fade-in)
-                  if (tower.placementEffectTimer > 0) {
+                  if (tower.placementEffectTimer > 0 && PLACEMENT_EFFECT_DURATION > 0) {
                       let scaleProgress = 1 - (tower.placementEffectTimer / PLACEMENT_EFFECT_DURATION);
                       let scale = 1 + (1 - scaleProgress) * 0.2; // Scale from 1.2 down to 1
                       ctx.translate(tower.x, tower.y);
@@ -2655,7 +2651,8 @@
 
                   // Draw range circle if needed
                   if (showRange) {
-                      ctx.save(); ctx.globalAlpha *= 0.5; // Make range semi-transparent
+                      ctx.save();
+                      ctx.globalAlpha = (ctx.globalAlpha || 1) * 0.5; // Make range semi-transparent, account for existing alpha
                       // Main attack range
                       ctx.beginPath(); ctx.arc(tower.x, tower.y, tower.range, 0, Math.PI * 2); ctx.fillStyle = "rgba(255,255,255,0.05)"; ctx.fill(); ctx.strokeStyle = "rgba(255,255,255,0.15)"; ctx.lineWidth = 1; ctx.setLineDash([4, 4]); ctx.stroke(); ctx.setLineDash([]);
                       // Freeze aura range (if applicable)
@@ -2677,7 +2674,7 @@
                   ctx.fillStyle = "rgba(255, 255, 255, 0.9)"; ctx.font = "bold 11px 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif"; ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.shadowColor = 'black'; ctx.shadowBlur = 3; ctx.fillText(tower.level, tower.x, tower.y); ctx.shadowBlur = 0;
 
                   // Draw firing animation effect (pulse)
-                  if (tower.firingEffectTimer > 0) { let scale = 1 + Math.sin((FIRING_EFFECT_DURATION - tower.firingEffectTimer) / FIRING_EFFECT_DURATION * Math.PI) * 0.1; ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.translate(tower.x, tower.y); ctx.scale(scale, scale); ctx.translate(-tower.x, -tower.y); ctx.fillStyle = tower.bulletColor; ctx.globalAlpha = tower.firingEffectTimer / FIRING_EFFECT_DURATION * 0.7; ctx.beginPath(); ctx.arc(tower.x, tower.y, towerRadius * 1.1, 0, Math.PI * 2); ctx.fill(); ctx.restore(); }
+                  if (tower.firingEffectTimer > 0 && FIRING_EFFECT_DURATION > 0) { let scale = 1 + Math.sin((FIRING_EFFECT_DURATION - tower.firingEffectTimer) / FIRING_EFFECT_DURATION * Math.PI) * 0.1; ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.translate(tower.x, tower.y); ctx.scale(scale, scale); ctx.translate(-tower.x, -tower.y); ctx.fillStyle = tower.bulletColor; ctx.globalAlpha = tower.firingEffectTimer / FIRING_EFFECT_DURATION * 0.7; ctx.beginPath(); ctx.arc(tower.x, tower.y, towerRadius * 1.1, 0, Math.PI * 2); ctx.fill(); ctx.restore(); }
 
                   ctx.restore(); // Restore main tower context
               });
@@ -2703,7 +2700,7 @@
                 if (p.type === 'damage_number') {
                     ctx.font = "bold 12px 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif"; ctx.textAlign = "center";
                     ctx.shadowColor = 'black'; ctx.shadowBlur = 2; ctx.fillText(p.text, p.x, p.y); ctx.shadowBlur = 0;
-                } else if (p.type === 'splash_ring') { // Expanding ring
+                } else if (p.type === 'splash_ring' && p.initialLifetime > 0) { // Expanding ring, check initialLifetime
                     ctx.beginPath(); ctx.arc(p.x, p.y, p.radius + (p.maxRadius - p.radius) * (1 - p.lifetime / p.initialLifetime), 0, Math.PI * 2);
                     ctx.lineWidth = 2; ctx.stroke();
                 } else { // Default: draw filled circle (explosion, muzzle flash, heal, fail)
@@ -2716,8 +2713,13 @@
             // Draw screen flashes, placement rings etc.
             ctx.save();
             gameEffects.forEach(effect => {
-                ctx.globalAlpha = Math.max(0, effect.lifetime / (effect.initialLifetime || 1)); // Fade effect
-                if (effect.type === 'placement_ring') { // Draw expanding ring
+                if (effect.initialLifetime > 0) { // Ensure initialLifetime is positive
+                    ctx.globalAlpha = Math.max(0, effect.lifetime / effect.initialLifetime); // Fade effect
+                } else {
+                    ctx.globalAlpha = 0; // If initialLifetime is 0, effect is immediately gone
+                }
+
+                if (effect.type === 'placement_ring' && effect.initialLifetime > 0) { // Draw expanding ring
                     ctx.strokeStyle = effect.color; ctx.lineWidth = 3; ctx.beginPath();
                     // Calculate current radius based on lifetime
                     const currentRadius = effect.maxRadius - (effect.maxRadius - effect.radius) * (effect.lifetime / effect.initialLifetime);
@@ -2868,10 +2870,7 @@
                          selectedTowerType = null;
                          towerPreview = null;
                          // updateUI() is called within placeTower
-                     } else {
-                         // Placement failed (e.g., gold check failed - unlikely if button was enabled, but check anyway)
-                         // Sound is played within placeTower on failure
-                     }
+                     } // No 'else' needed here, placeTower handles its own failure feedback (sound)
                  } else {
                      // Invalid location: Play error sound, DO NOT deselect preview
                      playSound('error', 0.2);
@@ -2919,7 +2918,7 @@
                  selectedTowerForManagement = null;
                  hideTowerManagementContainer();
                  playSound('ui_click', 0.05);
-                 return; // Stop processing click
+                 // return; // Not strictly necessary to return here, as no other actions follow
              }
 
              // Note: Clicking empty space while in placement mode does nothing here (handled by Action 1)
@@ -2938,18 +2937,18 @@
                  towerPreview = null;
                  updateUI(); // Update tower button states (ensure they are clickable again if affordable)
              }
-             // If management panel is open, close it on right click as well? (Optional)
-             // else if (selectedTowerForManagement) {
-             //     selectedTowerForManagement = null;
-             //     hideTowerManagementContainer();
-             //     playSound('cancel_placement'); // Or a different sound
-             // }
+             // If management panel is open, close it on right click
+             else if (selectedTowerForManagement) {
+                 selectedTowerForManagement = null;
+                 hideTowerManagementContainer();
+                 playSound('cancel_placement'); // Or a different sound
+             }
          }
 
 
          function isMouseOverTower(tower) {
-             // Don't show hover range if another tower is selected for management
-             if (selectedTowerForManagement && selectedTowerForManagement !== tower) return false;
+             // Don't show hover range if another tower is selected for management OR if in placement mode
+             if ((selectedTowerForManagement && selectedTowerForManagement !== tower) || selectedTowerType) return false;
              // Check distance from current logical mouse coordinates to tower center
              return getDistance(currentMouseX, currentMouseY, tower.x, tower.y) < tower.size / 2;
          }
@@ -2960,7 +2959,7 @@
              // Find the target element with data-tooltip, searching up the DOM tree
              let targetElement = e.target;
              let tooltipText = null;
-             while (targetElement && targetElement !== gameContainer) {
+             while (targetElement && targetElement !== gameContainer && targetElement !== document.body) { // Stop search at gameContainer or body
                  tooltipText = targetElement.getAttribute('data-tooltip');
                  if (tooltipText) break; // Found tooltip text
                  targetElement = targetElement.parentElement; // Move up the tree
@@ -2993,7 +2992,20 @@
              if (!customTooltip || !gameContainer) return;
 
              const containerRect = gameContainer.getBoundingClientRect();
-             const tooltipRect = customTooltip.getBoundingClientRect(); // Get its current dimensions
+             // Get tooltip dimensions. Forcing reflow if it was hidden:
+             let tooltipWidth, tooltipHeight;
+             const wasHidden = !customTooltip.classList.contains('visible');
+             if (wasHidden) {
+                 customTooltip.style.visibility = 'hidden'; // Make it non-visible but layout-affecting
+                 customTooltip.style.display = 'block';    // Ensure it takes up space for measurement
+             }
+             tooltipWidth = customTooltip.offsetWidth;
+             tooltipHeight = customTooltip.offsetHeight;
+             if (wasHidden) {
+                 customTooltip.style.visibility = ''; // Reset
+                 customTooltip.style.display = '';    // Reset
+             }
+
 
              // Calculate desired position relative to the viewport cursor
              let x = e.clientX + TOOLTIP_OFFSET_X;
@@ -3001,21 +3013,21 @@
 
              // Clamp position to stay within the game container bounds
              // Adjust x if tooltip goes beyond the right edge
-             if (x + tooltipRect.width > containerRect.right) {
-                 x = e.clientX - tooltipRect.width - TOOLTIP_OFFSET_X; // Flip to left of cursor
+             if (x + tooltipWidth > containerRect.right - 5) { // 5px buffer from edge
+                 x = e.clientX - tooltipWidth - TOOLTIP_OFFSET_X; // Flip to left of cursor
              }
              // Adjust x if tooltip goes beyond the left edge (can happen if flipped)
-             if (x < containerRect.left) {
-                 x = containerRect.left + 5; // Add small buffer from edge
+             if (x < containerRect.left + 5) { // 5px buffer from edge
+                 x = containerRect.left + 5;
              }
 
              // Adjust y if tooltip goes below the bottom edge
-             if (y + tooltipRect.height > containerRect.bottom) {
-                 y = e.clientY - tooltipRect.height - TOOLTIP_OFFSET_Y; // Flip above cursor
+             if (y + tooltipHeight > containerRect.bottom - 5) { // 5px buffer from edge
+                 y = e.clientY - tooltipHeight - TOOLTIP_OFFSET_Y; // Flip above cursor
              }
              // Adjust y if tooltip goes above the top edge
-             if (y < containerRect.top) {
-                 y = containerRect.top + 5; // Add small buffer from edge
+             if (y < containerRect.top + 5) { // 5px buffer from edge
+                 y = containerRect.top + 5;
              }
 
              // Apply the final position using fixed positioning
@@ -3054,18 +3066,17 @@
              upgradeButton.disabled = (gold < upgradeCost);
          }
 
-         // *** MODIFIED: Tower Panel Positioning Logic ***
          function showTowerManagementContainer(tower) {
              if (!towerManagementContainer || !towerInfoP || !upgradeInfoP || !upgradeButton || !sellButton || !gameContainer || !scaleFactor) return;
              const typeData = towerTypes[tower.type]; if (!typeData) return;
 
-             // 1. Update Content (same as before)
+             // 1. Update Content
              let statsText = `<strong>${typeData.name || tower.type} (Lvl ${tower.level})</strong><br> DMG: ${tower.damage.toFixed(1)}, Range: ${tower.range}, Rate: ${tower.fireRate.toFixed(2)}/s`;
              if (tower.splashRadius > 0) statsText += `, Splash: ${tower.splashRadius.toFixed(0)}`; if (tower.pierceCount > 0) statsText += `, Pierce: ${tower.pierceCount}`; if (tower.numTargets > 1) statsText += `, Targets: ${tower.numTargets}`; if (tower.slowAmount > 0) statsText += `, Slow: ${Math.round(tower.slowAmount*100)}%`; if (tower.stunChance > 0) statsText += `, Stun: ${Math.round(tower.stunChance*100)}%`;
              towerInfoP.innerHTML = statsText;
 
-             if (tower.level < tower.maxLevel) {
-                 const upgradeData = typeData.upgrades[tower.level - 1];
+             if (tower.level < tower.maxLevel && typeData.upgrades && typeData.upgrades.length >= tower.level) {
+                 const upgradeData = typeData.upgrades[tower.level - 1]; // level is 1-based, array is 0-based
                  if (upgradeData) {
                      const upgradeCost = upgradeData.cost;
                      upgradeInfoP.innerHTML = `<em>Upgrade: ${upgradeData.description || 'Stats+'}</em>`;
@@ -3085,28 +3096,25 @@
              sellButton.disabled = false; // Sell button is always enabled when panel is shown
              sellButton.style.display = 'block'; // Ensure visible
 
-             // 2. Calculate Position *** NEW LOGIC ***
-             const containerRect = gameContainer.getBoundingClientRect(); // Get container dimensions relative to viewport
-             // Force reflow to get accurate dimensions if panel was hidden
-             towerManagementContainer.style.visibility = 'hidden'; // Temporarily make it non-visible but layout-affecting
-             towerManagementContainer.style.display = 'block'; // Ensure it takes up space
+             // 2. Calculate Position
+             const containerRect = gameContainer.getBoundingClientRect();
+             towerManagementContainer.style.visibility = 'hidden';
+             towerManagementContainer.style.display = 'block';
              const panelWidth = towerManagementContainer.offsetWidth;
              const panelHeight = towerManagementContainer.offsetHeight;
-             towerManagementContainer.style.display = ''; // Reset display property
-             towerManagementContainer.style.visibility = ''; // Reset visibility
+             towerManagementContainer.style.display = '';
+             towerManagementContainer.style.visibility = '';
 
-             // Convert tower's logical canvas coordinates to scaled coordinates relative to the container's top-left
              const towerScaledX = tower.x * scaleFactor;
              const towerScaledY = tower.y * scaleFactor;
              const towerScaledSize = tower.size * scaleFactor;
 
-             // Target position: Centered horizontally, TOWER_PANEL_SPACING pixels above the tower's visual top edge
              let desiredLeft = towerScaledX - (panelWidth / 2);
              let desiredTop = towerScaledY - (towerScaledSize / 2) - panelHeight - TOWER_PANEL_SPACING;
 
-             // Clamp position to stay within the game container visually
-             const finalLeft = Math.max(0, Math.min(containerRect.width - panelWidth, desiredLeft));
-             const finalTop = Math.max(0, Math.min(containerRect.height - panelHeight, desiredTop));
+             const buffer = 5; // 5px buffer from container edges
+             const finalLeft = Math.max(buffer, Math.min(containerRect.width - panelWidth - buffer, desiredLeft));
+             const finalTop = Math.max(buffer, Math.min(containerRect.height - panelHeight - buffer, desiredTop));
 
              // 3. Apply Position & Make Visible
              towerManagementContainer.style.left = `${finalLeft}px`;
@@ -3120,9 +3128,6 @@
          function hideTowerManagementContainer() {
              if(towerManagementContainer) {
                  towerManagementContainer.classList.remove("visible");
-                 // Clear potentially set inline styles (optional, but good practice if layout changes)
-                 // towerManagementContainer.style.left = '';
-                 // towerManagementContainer.style.top = '';
                  selectedTowerForManagement = null; // Ensure tower is deselected
              }
          }
@@ -3132,7 +3137,14 @@
               const tower = selectedTowerForManagement; const typeData = towerTypes[tower.type];
               if (!typeData || tower.level >= tower.maxLevel) return;
 
-              const upgradeData = typeData.upgrades[tower.level - 1]; if (!upgradeData) return;
+              // Ensure there's an upgrade defined for the current tower level
+              if (!typeData.upgrades || typeData.upgrades.length < tower.level) {
+                  console.error("Upgrade data missing for tower:", tower.type, "at level:", tower.level);
+                  return;
+              }
+              const upgradeData = typeData.upgrades[tower.level - 1]; // level is 1-based, array is 0-based
+              if (!upgradeData) { console.error("Upgrade data specifically missing for tower:", tower.type, "level to upgrade:", tower.level); return; }
+
               const upgradeCost = upgradeData.cost;
 
               if (gold >= upgradeCost) {
@@ -3144,15 +3156,10 @@
 
                   // Apply all properties from the upgrade data (except cost/description)
                   Object.keys(upgradeData).forEach(key => {
-                      // Check if the key exists on the tower object itself (not inherited)
-                      // and isn't 'cost' or 'description'
-                      if (key !== 'cost' && key !== 'description' && Object.prototype.hasOwnProperty.call(tower, key)) {
+                      if (key !== 'cost' && key !== 'description') {
+                          // If the property is completely new (not in base tower or tower object), add it.
+                          // Otherwise, just update the existing property on the tower.
                           tower[key] = upgradeData[key];
-                      } else if (key !== 'cost' && key !== 'description') {
-                          // Log if trying to apply a property that doesn't exist on the base tower object
-                          // console.warn(`Upgrade property "${key}" not found on tower object.`);
-                          // Optionally add it if needed, but usually indicates base tower object needs the property initialized.
-                          // tower[key] = upgradeData[key];
                       }
                   });
 
@@ -3161,7 +3168,7 @@
                       triggerValueChangedAnimation(goldCounterDiv);
                   }
 
-                  // Refresh the panel content and position (position might not change, but content does)
+                  // Refresh the panel content and position
                   showTowerManagementContainer(tower);
                   updateUI(); // Update main gold display and potentially tower button states
               } else {
@@ -3222,8 +3229,14 @@
              // Reset UI elements to initial state
              if(gameOverScreen) gameOverScreen.classList.remove("visible");
              if(victoryScreen) victoryScreen.classList.remove("visible");
-             if(settingsMenu) settingsMenu.classList.remove("visible"); // Close settings if open
-             if(pauseButton) pauseButton.disabled = false; // Re-enable pause button
+             if(settingsMenu && settingsMenu.classList.contains("visible")) { // Only close if open
+                 closeSettingsMenu(); // Use the function to handle pause state correctly
+             }
+             if(pauseButton) {
+                 pauseButton.disabled = false; // Re-enable pause button
+                 pauseButton.textContent = "|| Pause";
+             }
+
 
              // --- Reset Start/Next Wave Buttons ---
              if(startButton) {
@@ -3231,7 +3244,6 @@
                  startButton.textContent = "▶ Start Wave";
                  startButton.classList.remove('hidden'); // Show Start button
              }
-             if(pauseButton) { pauseButton.textContent = "|| Pause"; }
              if(nextWaveButton) {
                  nextWaveButton.classList.add('hidden'); // Hide Next Wave button
              }
@@ -3240,7 +3252,7 @@
              hideTowerManagementContainer(); // Hide tower panel if open
              if(interestInfoText) interestInfoText.textContent = "";
              if(waveInfo) waveInfo.classList.remove('visible');
-             if(healthCounterDiv) healthCounterDiv.classList.remove('low-health'); // Handled by applyDifficulty, but ensure here
+             // healthCounterDiv low-health class is handled by applyDifficultySettings via updateUI
              if(killStreakCounterDiv) killStreakCounterDiv.classList.remove('active-streak');
              if(towerButtons) towerButtons.forEach(btn => { btn.classList.remove('selected'); btn.classList.remove('disabled'); });
 
