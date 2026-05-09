@@ -1,0 +1,5 @@
+# Local agent notes
+AGENTS.md
+
+# Generated source assets are embedded into HTML before deployment
+images/generated/

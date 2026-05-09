@@ -1,97 +1,117 @@
-# Wave Defense Game
+# Tower Gridlock
 
-![Gameplay Screenshot Placeholder](images/screenshot.png) 
-A classic wave-based tower defense game built entirely with HTML, CSS, and vanilla JavaScript using the Canvas API. Place towers strategically to defend your base against increasingly difficult waves of enemies!
+Tower Gridlock is a static HTML game experiment comparing several single-file
+AI-made builds. Each playable build lives at the repository root as a standalone
+HTML file with inline CSS and JavaScript. There is no framework, package
+manager, build step, or server requirement.
 
-## Features
+![Tower Gridlock screenshot](images/screenshot.png)
 
-* **Classic Tower Defense:** Defend against waves of enemies marching along a path towards your base.
-* **Multiple Tower Types:**
-    * **Basic:** Standard all-rounder.
-    * **Sniper:** High range, high damage, slow fire rate.
-    * **Cannon:** Moderate damage, hits multiple targets.
-    * **Freeze:** Low damage, slows ground enemies.
-* **Tower Upgrades:** Improve tower stats (Damage, Range, Fire Rate) and unlock special abilities (Splash Damage, Pierce, Stun, Slow Aura) through multiple levels.
-* **Diverse Enemies:** Face various enemy types with unique strengths and weaknesses (Grunt, Fast, Tank, Armored, Flyer, Healer).
-* **Dynamic Paths:** The enemy path changes every 5 waves, requiring you to adapt your strategy and rebuild your defenses (towers are partially refunded).
-* **Difficulty Levels:** Choose from Easy, Normal, or Hard modes affecting starting resources, enemy strength, and gold rewards.
-* **Game Speed Control:** Play at 1x, 2x, 4x, or 8x speed.
-* **Bomb Ability:** Charge a powerful bomb by defeating enemies and unleash it to damage all enemies on screen.
-* **Kill Streaks:** Earn bonus gold for defeating multiple enemies in quick succession.
-* **Interest:** Earn passive income based on your gold balance between waves.
-* **Settings Menu:** Adjust SFX/Music volume, mute audio, toggle damage numbers and particle effects.
-* **Persistent High Score:** Your highest score is saved locally using `localStorage`.
-* **Visual Feedback:** Includes damage numbers, particle effects for explosions and firing, animations for UI changes, and visual indicators for tower range and status effects.
-* **Responsive Design:** The game interface scales to fit different screen sizes while maintaining aspect ratio.
+## Builds
 
-## How to Play
+- `index.html` - build chooser for the available versions.
+- `gemini.html` - original 2025 Gemini build. This is the classic wave-based
+  tower-defense game with pathing, tower placement, upgrades, enemy waves,
+  difficulty settings, speed controls, high score persistence, and procedural
+  audio.
+- `claude.html` - 2026 Claude Code reimplementation. This is a separate
+  grid-based tower-defense build with neon visuals, 15 waves, difficulty
+  selection, tower upgrades, pause/settings controls, and local save data.
+- `codex.html` - 2026 Codex wildcard. This keeps the single-file constraint but
+  pivots into an Age of War style lane battle with four eras, trainable units,
+  evolving bases, turret upgrades, special attacks, and embedded generated art.
 
-1.  **Select a Tower:** Click a tower button at the bottom of the screen. You can only select towers you can afford.
-2.  **Place the Tower:** Move your mouse to the desired location on the map. A preview will show the tower and its range. The range circle will be green if the location is valid (not on the path, base, or too close to other towers) and red otherwise. Click to place the tower.
-3.  **Cancel Placement:** Right-click anywhere on the game area while a tower is selected for placement to cancel.
-4.  **Start the Wave:** Click the "Start Wave" button (or "Next Wave" button between waves) to begin the enemy assault. The path changes every 5 waves, requiring you to click "Start Wave" again after rebuilding.
-5.  **Manage Towers:** Click an existing tower on the map to open its management panel.
-    * **Upgrade:** If the tower isn't max level and you have enough gold, click "Upgrade" to improve its stats.
-    * **Sell:** Click "Sell" to remove the tower and get a partial refund based on its total invested cost.
-    * Click anywhere else on the map to close the panel.
-6.  **Use the Bomb:** When the Bomb button is fully charged (indicated by the progress bar and "Ready!" text), click it to damage all enemies currently on screen.
-7.  **Control Speed:** Use the speed buttons (1x, 2x, 4x, 8x) at the top right to adjust the game speed.
-8.  **Pause/Resume:** Click the Pause/Resume button to toggle the game state.
-9.  **Settings:** Click the Settings (⚙️) button to open the settings menu for audio/visual adjustments and difficulty selection (requires restart).
-
-## Difficulty Levels
-
-* **Easy:** Enemies have less health and move slower. You start with more gold and health. Gold rewards are increased.
-* **Normal:** Standard balanced difficulty.
-* **Hard:** Enemies have more health and move faster. You start with less gold and health. Gold rewards are reduced.
-_Note: Changing difficulty requires restarting the game via the Settings menu or Game Over/Victory screen for the changes to take full effect._
-
-## Towers
-
-* **Basic (50g):** Standard damage and fire rate. Hits Ground & Flying. Upgrades improve stats and add splash damage at max level.
-* **Sniper (100g):** High range, high damage, slow fire rate. Hits Ground & Flying. Upgrades improve stats and add piercing capability at max level.
-* **Cannon (150g):** Moderate damage, hits multiple targets simultaneously. Hits Ground & Flying. Upgrades improve stats, increase target count, and add a chance to stun at max level.
-* **Freeze (120g):** Low damage, significantly slows enemies. Hits Ground only. Upgrades improve stats, strengthen the slow effect, and add a slowing aura at max level.
-
-## Enemies
-
-* **Grunt:** Standard ground unit.
-* **Fast:** Moves quickly, lower health. Ground unit.
-* **Tank:** Slow but high health. Ground unit.
-* **Armored:** Moderate health with armor that reduces incoming damage (less effective against cannon/bomb, more effective against basic/freeze). Ground unit.
-* **Flyer:** Flies directly towards the base, ignoring the path. Can only be hit by towers that target flying units (Basic, Sniper, Cannon).
-* **Healer:** Slowly heals nearby damaged ground units. Ground unit.
+The builds do not share code. Treat each HTML file as its own self-contained
+application unless a broader refactor is intentional.
 
 ## Running Locally
 
-This is a client-side game using only HTML, CSS, and JavaScript. No build process or server is required.
+Open the chooser directly:
 
-1.  Clone or download this repository.
-2.  Open the `index.html` (or the main HTML file name) in your web browser.
+```sh
+xdg-open index.html
+```
 
-That's it! The game should run directly.
+Or open a specific build:
 
-## Technologies Used
+```sh
+xdg-open gemini.html
+xdg-open claude.html
+xdg-open codex.html
+```
 
-* HTML5
-* CSS3 (including CSS Variables, Flexbox, Animations)
-* JavaScript (ES6+)
-    * Canvas API for rendering
-    * Web Audio API for sound effects
-    * `localStorage` for high score persistence
+Serving the directory is optional, but useful for browser testing:
 
-## Contributing
+```sh
+python3 -m http.server 8000
+```
 
-Contributions are welcome! Feel free to fork the repository, make improvements, and submit a pull request. Some potential ideas for improvement:
+Then visit `http://localhost:8000/`.
 
-* Add background music.
-* Implement more complex sound effects or use sound libraries.
-* Add more tower or enemy types.
-* Create boss waves.
-* Improve visual effects and animations.
-* Refactor code for better organization or performance.
-* Add unit tests.
+## Gameplay Summary
+
+### Gemini Build
+
+The Gemini build is the original tower-defense implementation. Place Basic,
+Sniper, Cannon, and Freeze towers around a changing enemy path, survive 25
+waves, upgrade towers through multiple levels, and use a charged bomb ability
+when the screen gets crowded. Enemies include ground units, flyers, armored
+units, tanks, fast enemies, and healers. The active path changes every 5 waves,
+partially refunding towers and forcing a rebuild.
+
+### Claude Build
+
+The Claude build is a separate 2026 tower-defense game with a grid placement
+model, 15 waves, three difficulty levels, wave rewards with interest, keyboard
+shortcuts, audio controls, and a local save for best run and settings. It uses a
+different codebase and game loop from the Gemini build.
+
+### Codex Build
+
+The Codex build is a lane-war variant inspired by Age of War. Train melee,
+ranged, and heavy units, manage gold and experience, evolve through Stone, Iron,
+Steam, and Neon eras, add turret defense, and use era-specific specials to break
+the enemy base. Generated artwork is embedded directly into the HTML so the page
+still runs as a single file.
+
+## Project Structure
+
+```text
+.
+|-- index.html          # Build chooser
+|-- gemini.html         # Original Gemini tower-defense build
+|-- claude.html         # Claude Code tower-defense build
+|-- codex.html          # Codex lane-war build
+|-- images/
+|   `-- screenshot.png  # README screenshot
+|-- CLAUDE.md           # Architecture notes for agents
+|-- LICENSE             # MIT license
+`-- README.md
+```
+
+## Development Notes
+
+- Keep each build self-contained unless a task explicitly asks for shared code.
+- Prefer editing declarative game data tables for balance changes before
+  changing loop or rendering logic.
+- The game pages use `localStorage` for settings, saves, or high scores. Clear
+  relevant keys in DevTools when testing first-run behavior.
+- Generated source assets are not needed at runtime when they have already been
+  embedded into the HTML.
+
+## Manual Testing
+
+There is no automated test suite. For gameplay changes, check:
+
+- the page loads directly from disk and through `python3 -m http.server`
+- startup and restart flows
+- tower placement or unit training
+- wave or enemy progression
+- pause, settings, speed, and audio controls
+- game-over and victory states
+- responsive sizing on desktop and mobile widths
+- `localStorage` save, settings, or high score behavior
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE.md](LICENSE.md) file for details (if you create one).
+This project is licensed under the MIT License. See [LICENSE](LICENSE).
